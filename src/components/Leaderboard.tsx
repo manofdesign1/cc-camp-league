@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Medal, Award, DollarSign, Zap, Calendar, Share2, X, BadgeCheck, Loader2, Terminal, Copy, Check, Users } from "lucide-react";
+import { Trophy, Medal, Award, DollarSign, Zap, Calendar, X, BadgeCheck, Loader2, Terminal, Copy, Check, Users } from "lucide-react";
 import { useSession } from "next-auth/react";
-import Link from "next/link";
-import ShareCard from "./ShareCard";
 import Avatar from "./Avatar";
 import { formatNumber, formatCurrency } from "@/lib/utils";
 import { useLeaderboard, useLeaderboardByDateRange } from "@/lib/data/hooks/useSubmissions";
@@ -21,9 +19,10 @@ interface LeaderboardProps {
 
 export default function Leaderboard({ onCopyCommand, copiedToClipboard }: LeaderboardProps) {
   const [sortBy, setSortBy] = useState<SortBy>("tokens");
-  const [showShareCard, setShowShareCard] = useState<string | null>(null);
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  // Default to today
+  const today = new Date().toISOString().split('T')[0];
+  const [dateFrom, setDateFrom] = useState<string>(today);
+  const [dateTo, setDateTo] = useState<string>(today);
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(0);
   const [allItems, setAllItems] = useState<Submission[]>([]);
@@ -41,6 +40,37 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
   const { data: dateFilteredResult } = useLeaderboardByDateRange(
     isDateFiltered ? { dateFrom, dateTo, sortBy, limit: 100 } : "skip"
   );
+
+  // Previous period for rank change comparison
+  const prevPeriod = useMemo(() => {
+    if (!dateFrom || !dateTo) return null;
+    const from = new Date(dateFrom + "T00:00:00");
+    const to = new Date(dateTo + "T00:00:00");
+    const diffMs = to.getTime() - from.getTime();
+    const diffDays = Math.max(1, Math.round(diffMs / (24 * 60 * 60 * 1000)) + 1);
+    const prevTo = new Date(from);
+    prevTo.setDate(prevTo.getDate() - 1);
+    const prevFrom = new Date(prevTo);
+    prevFrom.setDate(prevFrom.getDate() - diffDays + 1);
+    return {
+      dateFrom: prevFrom.toISOString().split('T')[0],
+      dateTo: prevTo.toISOString().split('T')[0],
+    };
+  }, [dateFrom, dateTo]);
+
+  const { data: prevPeriodResult } = useLeaderboardByDateRange(
+    prevPeriod ? { dateFrom: prevPeriod.dateFrom, dateTo: prevPeriod.dateTo, sortBy, limit: 100 } : "skip"
+  );
+
+  const prevRankMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!prevPeriodResult?.items) return map;
+    prevPeriodResult.items.forEach((item, index) => {
+      const key = item.githubUsername || item.username;
+      map.set(key, index + 1);
+    });
+    return map;
+  }, [prevPeriodResult]);
 
   useEffect(() => {
     setAllItems([]);
@@ -82,6 +112,16 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
     return () => observer.disconnect();
   }, [regularResult?.hasMore, isLoading, isDateFiltered, allItems.length]);
 
+  const getRankChange = (username: string, currentRank: number) => {
+    if (!prevPeriod || prevRankMap.size === 0) return null;
+    const prevRank = prevRankMap.get(username);
+    if (prevRank === undefined) return { type: 'new' as const };
+    const diff = prevRank - currentRank;
+    if (diff > 0) return { type: 'up' as const, value: diff };
+    if (diff < 0) return { type: 'down' as const, value: Math.abs(diff) };
+    return { type: 'same' as const };
+  };
+
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Trophy className="w-4 h-4 text-yellow-500" />;
     if (rank === 2) return <Medal className="w-4 h-4 text-gray-400" />;
@@ -98,17 +138,27 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
     if (days === null) {
       setDateFrom("");
       setDateTo("");
+    } else if (days === 0) {
+      // Today
+      const t = new Date().toISOString().split('T')[0];
+      setDateFrom(t);
+      setDateTo(t);
     } else {
-      const today = new Date();
-      const from = new Date(today);
-      from.setDate(today.getDate() - days);
+      const t = new Date();
+      const from = new Date(t);
+      from.setDate(t.getDate() - days);
       setDateFrom(from.toISOString().split('T')[0]);
-      setDateTo(today.toISOString().split('T')[0]);
+      setDateTo(t.toISOString().split('T')[0]);
     }
   };
 
-  const isQuickFilterActive = (days: number) => {
+  const isQuickFilterActive = (days: number | null) => {
+    if (days === null) return !dateFrom && !dateTo;
     if (!dateFrom || !dateTo) return false;
+    if (days === 0) {
+      const t = new Date().toISOString().split('T')[0];
+      return dateFrom === t && dateTo === t;
+    }
     const diff = Math.round((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / (24 * 60 * 60 * 1000));
     return diff === days;
   };
@@ -116,11 +166,11 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex-shrink-0 px-6 py-5 border-b border-border">
-        <div className="flex items-center justify-between gap-4 mb-5">
+      <div className="flex-shrink-0 px-6 py-3 border-b border-border">
+        <div className="flex items-center justify-between gap-4 mb-3">
           <div>
-            <h1 className="text-2xl font-bold">AI Native Camp 리더보드</h1>
-            <p className="text-sm text-muted mt-1">더 많이 쓰는 사람이 더 빠르게 성장합니다 🔥</p>
+            <h1 className="text-xl font-bold">AI Native Camp 리더보드</h1>
+            <p className="text-xs text-muted mt-0.5">더 많이 쓰는 사람이 더 빠르게 성장합니다 🔥</p>
           </div>
           {onCopyCommand && (
             <button
@@ -140,55 +190,29 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
 
         {/* Aggregated Stats */}
         {globalStats && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-surface-1 rounded-xl px-4 py-3 border border-border">
-              <div className="flex items-center gap-1.5 text-xs text-muted mb-1">
-                <Users className="w-3.5 h-3.5" />
-                참가자
-              </div>
-              <div className="text-lg font-bold">{formatNumber(globalStats.totalUsers)}</div>
-            </div>
-            <div className="bg-surface-1 rounded-xl px-4 py-3 border border-border">
-              <div className="flex items-center gap-1.5 text-xs text-muted mb-1">
-                <DollarSign className="w-3.5 h-3.5" />
-                총 사용액
-              </div>
-              <div className="text-lg font-bold font-mono text-accent">${formatCurrency(globalStats.totalCost)}</div>
-            </div>
-            <div className="bg-surface-1 rounded-xl px-4 py-3 border border-border">
-              <div className="flex items-center gap-1.5 text-xs text-muted mb-1">
-                <Zap className="w-3.5 h-3.5" />
-                총 토큰
-              </div>
-              <div className="text-lg font-bold font-mono">{formatNumber(globalStats.totalTokens)}</div>
-            </div>
-            <div className="bg-surface-1 rounded-xl px-4 py-3 border border-border">
-              <div className="flex items-center gap-1.5 text-xs text-muted mb-1">
-                <Trophy className="w-3.5 h-3.5" />
-                최고 사용자
-              </div>
-              <div className="text-lg font-bold font-mono truncate">${formatCurrency(globalStats.topCost)}</div>
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-muted" />
+              <span className="text-muted">참가자</span>
+              <span className="font-bold">{formatNumber(globalStats.totalUsers)}</span>
             </div>
           </div>
         )}
       </div>
 
       {/* Filters */}
-      <div className="flex-shrink-0 px-6 py-3 border-b border-border bg-surface-1">
+      <div className="flex-shrink-0 px-6 py-2 border-b border-border bg-surface-1">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-1.5">
             {[
-              { label: "전체", days: null },
+              { label: "오늘", days: 0 },
               { label: "7일", days: 7 },
-              { label: "30일", days: 30 },
             ].map(({ label, days }) => (
               <button
                 key={label}
                 onClick={() => setQuickFilter(days)}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  days === null
-                    ? (!dateFrom && !dateTo ? "bg-accent text-[#1C1917]" : "text-muted hover:text-foreground hover:bg-surface-2")
-                    : (isQuickFilterActive(days) ? "bg-accent text-[#1C1917]" : "text-muted hover:text-foreground hover:bg-surface-2")
+                  isQuickFilterActive(days) ? "bg-accent text-[#1C1917]" : "text-muted hover:text-foreground hover:bg-surface-2"
                 }`}
               >
                 {label}
@@ -263,11 +287,11 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
           <div>
             {/* Column Headers */}
             <div className="flex items-center gap-3 px-6 py-2 text-xs text-muted border-b border-border bg-surface-1 sticky top-0">
-              <div className="w-10 text-center">#</div>
+              <div className="w-8 text-center">#</div>
+              <div className="w-8 text-center"></div>
               <div className="flex-1">캠퍼</div>
               <div className="w-24 text-right">비용</div>
               <div className="w-24 text-right hidden sm:block">토큰</div>
-              <div className="w-8" />
             </div>
 
             <div className="divide-y divide-border">
@@ -277,14 +301,24 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
                 const rankIcon = getRankIcon(rank);
 
                 return (
-                  <Link
+                  <div
                     key={submission.id}
-                    href={`/profile/${encodeURIComponent(submission.githubUsername || submission.username)}`}
-                    className={`flex items-center gap-3 px-6 py-3.5 hover:bg-surface-1/80 transition-all cursor-pointer group ${getRankStyle(rank)} ${isCurrentUser ? "bg-accent/10 border-l-2 border-l-accent" : ""}`}
+                    className={`flex items-center gap-3 px-6 py-3.5 transition-all ${getRankStyle(rank)} ${isCurrentUser ? "bg-accent/10 border-l-2 border-l-accent" : ""}`}
                   >
                     {/* Rank */}
-                    <div className="w-10 flex-shrink-0 text-center">
+                    <div className="w-8 flex-shrink-0 text-center">
                       {rankIcon || <span className="text-sm text-muted font-mono">{rank}</span>}
+                    </div>
+                    {/* Rank Change */}
+                    <div className="w-8 flex-shrink-0 text-center">
+                      {(() => {
+                        const change = getRankChange(submission.githubUsername || submission.username, rank);
+                        if (!change) return null;
+                        if (change.type === 'new') return <span className="text-[10px] font-bold text-accent">NEW</span>;
+                        if (change.type === 'up') return <span className="text-[10px] font-bold text-green-500">▲{change.value}</span>;
+                        if (change.type === 'down') return <span className="text-[10px] font-bold text-red-400">▼{change.value}</span>;
+                        return <span className="text-[10px] text-muted/50">—</span>;
+                      })()}
                     </div>
 
                     {/* User */}
@@ -297,7 +331,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
                       />
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-medium group-hover:text-accent transition-colors truncate">
+                          <span className="text-sm font-medium truncate">
                             {submission.githubUsername || submission.username}
                           </span>
                           {submission.verified && (
@@ -325,18 +359,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
                       <div className="text-sm font-mono text-muted">{formatNumber(submission.totalTokens)}</div>
                     </div>
 
-                    {/* Actions */}
-                    <div className="w-8 flex-shrink-0">
-                      {isCurrentUser && (
-                        <button
-                          onClick={(e) => { e.preventDefault(); setShowShareCard(submission.id); }}
-                          className="p-1.5 text-muted hover:text-foreground hover:bg-surface-2 rounded transition-colors"
-                        >
-                          <Share2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </Link>
+                  </div>
                 );
               })}
 
@@ -363,26 +386,14 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
         </div>
       )}
 
-      {/* Share Modal */}
-      {showShareCard && allItems.find(s => s.id === showShareCard) && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-          onClick={() => setShowShareCard(null)}
-        >
-          <div onClick={(e) => e.stopPropagation()}>
-            <ShareCard
-              rank={allItems.findIndex(s => s.id === showShareCard) + 1}
-              username={allItems.find(s => s.id === showShareCard)!.username}
-              totalCost={allItems.find(s => s.id === showShareCard)!.totalCost}
-              totalTokens={allItems.find(s => s.id === showShareCard)!.totalTokens}
-              dateRange={allItems.find(s => s.id === showShareCard)!.dateRange}
-              onClose={() => setShowShareCard(null)}
-            />
-          </div>
-        </motion.div>
-      )}
+      {/* Footer */}
+      <div className="flex-shrink-0 px-6 py-3 border-t border-border text-center text-xs text-muted">
+        Made by{" "}
+        <a href="https://thefuturemundane.com" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors underline underline-offset-2">Sung Kim</a>
+        {" · "}
+        <a href="https://deltasociety.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors underline underline-offset-2">Delta Society</a>
+      </div>
+
     </div>
   );
 }

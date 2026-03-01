@@ -1,5 +1,16 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { rateLimiter } from "./rateLimiter";
+
+export const resetRateLimit = mutation({
+  args: {
+    username: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await rateLimiter.reset(ctx, "submitData", { key: args.username });
+    return { success: true, message: `Rate limit reset for "${args.username}"` };
+  },
+});
 
 export const deleteProfilesByPattern = mutation({
   args: {
