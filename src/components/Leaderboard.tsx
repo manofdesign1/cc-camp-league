@@ -313,6 +313,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
               <div className="w-8 text-center">#</div>
               <div className="w-8 text-center"></div>
               <div className="flex-1">캠퍼</div>
+              <div className="w-16 text-center hidden md:block">7일</div>
               <div className={`w-24 text-right ${sortBy === "tokens" ? "hidden sm:block" : ""}`}>비용</div>
               <div className={`w-24 text-right ${sortBy === "cost" ? "hidden sm:block" : ""}`}>토큰</div>
             </div>
@@ -379,6 +380,11 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
                           <div className="text-xs text-muted truncate">{submission.githubName}</div>
                         )}
                       </div>
+                    </div>
+
+                    {/* Sparkline */}
+                    <div className="w-16 flex-shrink-0 hidden md:flex items-center justify-center">
+                      <Sparkline data={submission.dailyBreakdown} />
                     </div>
 
                     {/* Cost */}
@@ -543,5 +549,37 @@ function HowToJoin({ compact = false }: { compact?: boolean }) {
         최초 1회만 설정하면 이후 자동으로 리더보드에 반영됩니다
       </p>
     </div>
+  );
+}
+
+function Sparkline({ data }: { data?: { date: string; totalTokens: number }[] }) {
+  if (!data || data.length < 2) return <span className="text-[10px] text-muted/30">—</span>;
+
+  const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date)).slice(-7);
+  const values = sorted.map(d => d.totalTokens);
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const range = max - min || 1;
+
+  const w = 56;
+  const h = 20;
+  const points = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * w;
+    const y = h - ((v - min) / range) * (h - 4) - 2;
+    return `${x},${y}`;
+  });
+
+  return (
+    <svg width={w} height={h} className="overflow-visible">
+      <polyline
+        points={points.join(" ")}
+        fill="none"
+        stroke="var(--accent)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={0.6}
+      />
+    </svg>
   );
 }
