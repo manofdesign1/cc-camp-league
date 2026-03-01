@@ -400,43 +400,78 @@ function HowToJoin({ compact = false }: { compact?: boolean }) {
 
   if (compact) {
     return (
-      <div className="px-6 py-3 flex items-center gap-3 text-xs text-muted">
-        <span className="flex-shrink-0">참여하려면:</span>
-        <button
-          onClick={() => copyText(setupCmd, 0)}
-          className="flex items-center gap-1.5 bg-background rounded px-2 py-1 border border-border hover:border-accent/50 transition-colors"
-        >
-          <code className="font-mono text-accent">{setupCmd}</code>
-          {copiedStep === 0 ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3 text-muted" />}
-        </button>
-        <span className="text-muted">← 최초 1회, 이후 자동 동기화</span>
+      <div className="px-6 py-4 space-y-2 text-xs text-muted">
+        <div className="flex items-center gap-2">
+          <span className="flex-shrink-0 w-16">참여하려면</span>
+          <span className="text-muted">터미널에</span>
+          <button
+            onClick={() => copyText(setupCmd, 0)}
+            className="flex items-center gap-1.5 bg-background rounded px-2 py-1 border border-border hover:border-accent/50 transition-colors"
+          >
+            <code className="font-mono text-accent">{setupCmd}</code>
+            {copiedStep === 0 ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3 text-muted" />}
+          </button>
+          <span className="text-muted">입력 (최초 1회, 이후 자동)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="flex-shrink-0 w-16">삭제하려면</span>
+          <span className="text-muted">터미널에</span>
+          <button
+            onClick={() => copyText("npx cc-camp remove", 1)}
+            className="flex items-center gap-1.5 bg-background rounded px-2 py-1 border border-border hover:border-accent/50 transition-colors"
+          >
+            <code className="font-mono text-accent">npx cc-camp remove</code>
+            {copiedStep === 1 ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3 text-muted" />}
+          </button>
+          <span className="text-muted">입력</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="py-16 px-6 max-w-sm mx-auto text-center">
+    <div className="py-16 px-6 max-w-md mx-auto text-center">
       <Trophy className="w-10 h-10 text-accent mx-auto mb-4" />
       <h2 className="text-lg font-bold mb-1">아직 참가자가 없습니다</h2>
-      <p className="text-sm text-muted mb-6">터미널에서 아래 명령어 하나만 실행하세요</p>
+      <p className="text-sm text-muted mb-8">아무 터미널에서 아래 명령어를 입력하세요</p>
 
-      <button
-        onClick={() => copyText(setupCmd, 0)}
-        className="w-full flex items-center justify-between gap-2 bg-surface-1 rounded-xl px-5 py-4 border border-border hover:border-accent/50 transition-colors group"
-      >
+      <div className="space-y-3 text-left">
         <div className="flex items-center gap-3">
-          <Terminal className="w-5 h-5 text-muted" />
-          <code className="text-base font-mono text-accent font-medium">{setupCmd}</code>
+          <span className="text-xs text-muted flex-shrink-0 w-16">참여하려면</span>
+          <span className="text-xs text-muted">터미널에</span>
+          <button
+            onClick={() => copyText(setupCmd, 0)}
+            className="flex items-center gap-2 bg-surface-1 rounded-lg px-4 py-2.5 border border-border hover:border-accent/50 transition-colors group"
+          >
+            <code className="text-sm font-mono text-accent font-medium">{setupCmd}</code>
+            {copiedStep === 0 ? (
+              <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+            ) : (
+              <Copy className="w-4 h-4 text-muted group-hover:text-foreground flex-shrink-0" />
+            )}
+          </button>
+          <span className="text-xs text-muted">입력</span>
         </div>
-        {copiedStep === 0 ? (
-          <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
-        ) : (
-          <Copy className="w-5 h-5 text-muted group-hover:text-foreground flex-shrink-0" />
-        )}
-      </button>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted flex-shrink-0 w-16">삭제하려면</span>
+          <span className="text-xs text-muted">터미널에</span>
+          <button
+            onClick={() => copyText("npx cc-camp remove", 1)}
+            className="flex items-center gap-2 bg-surface-1 rounded-lg px-4 py-2.5 border border-border hover:border-accent/50 transition-colors group"
+          >
+            <code className="text-sm font-mono text-accent font-medium">npx cc-camp remove</code>
+            {copiedStep === 1 ? (
+              <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+            ) : (
+              <Copy className="w-4 h-4 text-muted group-hover:text-foreground flex-shrink-0" />
+            )}
+          </button>
+          <span className="text-xs text-muted">입력</span>
+        </div>
+      </div>
 
-      <p className="text-xs text-muted mt-4">
-        GitHub 사용자명 입력 후 자동 동기화 설정 — 이후 사용량이 자동으로 반영됩니다
+      <p className="text-xs text-muted mt-6">
+        최초 1회만 설정하면 이후 자동으로 리더보드에 반영됩니다
       </p>
     </div>
   );
