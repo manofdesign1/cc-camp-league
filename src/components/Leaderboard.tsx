@@ -19,11 +19,9 @@ interface LeaderboardProps {
 
 export default function Leaderboard({ onCopyCommand, copiedToClipboard }: LeaderboardProps) {
   const [sortBy, setSortBy] = useState<SortBy>("tokens");
-  // Default to 7-day range (KST) — "오늘" may have no data early in the day
-  const todayKst = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const weekAgoKst = new Date(Date.now() + 9 * 60 * 60 * 1000 - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const [dateFrom, setDateFrom] = useState<string>(weekAgoKst);
-  const [dateTo, setDateTo] = useState<string>(todayKst);
+  // Default to "전체" — 모든 참가자가 보여야 함
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(0);
   const [allItems, setAllItems] = useState<Submission[]>([]);
@@ -233,6 +231,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
             {[
               { label: "오늘", days: 0 },
               { label: "7일", days: 7 },
+              { label: "전체", days: null },
             ].map(({ label, days }) => (
               <button
                 key={label}
