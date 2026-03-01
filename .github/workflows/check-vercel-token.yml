@@ -1,0 +1,23 @@
+name: Check Vercel Token
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Every Monday at 00:00 UTC
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Vercel Token
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+            https://api.vercel.com/v2/user)
+
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::Vercel token is invalid or expired (HTTP $STATUS). Update VERCEL_TOKEN secret."
+            exit 1
+          else
+            echo "Vercel token is valid."
+          fi
