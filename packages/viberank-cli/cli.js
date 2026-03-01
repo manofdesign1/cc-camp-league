@@ -285,15 +285,49 @@ async function status() {
 }
 
 async function remove() {
-  console.log(chalk.cyan.bold(`\n🏕️  AI Native Camp League — 자동 동기화 해제\n`));
+  console.log(chalk.cyan.bold(`\n🏕️  AI Native Camp League — 계정 삭제\n`));
 
+  const config = readConfig();
+
+  if (config?.username) {
+    const { confirm } = await prompts({
+      type: 'confirm',
+      name: 'confirm',
+      message: `"${config.username}" 계정과 리더보드 데이터를 모두 삭제할까요?`,
+      initial: false,
+    });
+
+    if (!confirm) {
+      console.log(chalk.yellow('취소되었습니다.\n'));
+      return;
+    }
+
+    // Delete from server
+    const spinner = ora('서버에서 데이터 삭제 중...').start();
+    try {
+      const res = await fetch(`${config.apiUrl || API_URL}/api/delete-account`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: config.username }),
+      });
+      const result = await res.json();
+      if (res.ok) {
+        spinner.succeed('서버 데이터 삭제 완료');
+      } else {
+        spinner.warn(`서버 삭제 실패: ${result.error || '알 수 없는 오류'}`);
+      }
+    } catch {
+      spinner.warn('서버 연결 실패 — 로컬 설정만 삭제합니다');
+    }
+  }
+
+  // Remove local config & cron
   removeCron();
-
   if (fs.existsSync(CONFIG_DIR)) {
     fs.rmSync(CONFIG_DIR, { recursive: true, force: true });
   }
 
-  console.log(chalk.green('✅ 자동 동기화가 해제되었습니다.\n'));
+  console.log(chalk.green('\n✅ 계정이 완전히 삭제되었습니다.\n'));
 }
 
 // --- Main ---
@@ -331,7 +365,7 @@ async function main() {
       console.log(`  ${chalk.white('npx cc-camp setup')}    자동 동기화 설정 (최초 1회)`);
       console.log(`  ${chalk.white('npx cc-camp sync')}     수동 동기화`);
       console.log(`  ${chalk.white('npx cc-camp status')}   동기화 상태 확인`);
-      console.log(`  ${chalk.white('npx cc-camp remove')}   자동 동기화 해제\n`);
+      console.log(`  ${chalk.white('npx cc-camp remove')}   계정 삭제 (서버 데이터 포함)\n`);
       break;
 
     default: {

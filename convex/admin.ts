@@ -76,6 +76,32 @@ export const deleteProfilesByPattern = mutation({
   },
 });
 
+export const deleteSubmissionsByPattern = mutation({
+  args: {
+    patterns: v.array(v.string()),
+    searchField: v.optional(v.union(v.literal("githubUsername"), v.literal("username"), v.literal("both"))),
+  },
+  handler: async (ctx, args) => {
+    const { patterns, searchField = "both" } = args;
+    const allSubmissions = await ctx.db.query("submissions").collect();
+
+    const toDelete = allSubmissions.filter(sub => {
+      const fields = searchField === "username" ? [sub.username || ""]
+        : searchField === "githubUsername" ? [sub.githubUsername || ""]
+        : [sub.username || "", sub.githubUsername || ""];
+      return fields.some(f =>
+        patterns.some(p => f.toLowerCase().includes(p.toLowerCase()))
+      );
+    });
+
+    for (const sub of toDelete) {
+      await ctx.db.delete(sub._id);
+    }
+
+    return { deletedCount: toDelete.length, patterns };
+  },
+});
+
 export const findProfilesByPattern = query({
   args: {
     patterns: v.array(v.string()),
