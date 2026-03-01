@@ -410,7 +410,7 @@ export const getLeaderboard = query({
   handler: async (ctx, args) => {
     const sortBy = args.sortBy || "cost";
     const page = args.page || 0;
-    const pageSize = Math.min(args.pageSize || 25, 50); // Max 50 per page
+    const pageSize = Math.min(args.pageSize || 25, 200); // Max 200 per page
     const offset = page * pageSize;
     const includeFlagged = args.includeFlagged || false;
     
@@ -458,25 +458,19 @@ export const getLeaderboardByDateRange = query({
     includeFlagged: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const limit = Math.min(args.limit || 50, 100);
+    const limit = Math.min(args.limit || 50, 200);
     const includeFlagged = args.includeFlagged || false;
     const sortBy = args.sortBy || "cost";
-    
-    // NOTE: Date range filtering requires computing totals from dailyBreakdown
-    // This is inherently expensive. Consider:
-    // 1. Pre-computing weekly/monthly aggregates
-    // 2. Storing denormalized date-range totals
-    // 3. Using a separate analytics table
-    
+
     let query = ctx.db.query("submissions");
-    
+
     // Apply cursor if provided
     if (args.cursor) {
       query = query.filter(q => q.gt(q.field("_id"), args.cursor!));
     }
-    
-    // Fetch a batch to process
-    const batchSize = 100;
+
+    // Fetch all submissions to process
+    const batchSize = 200;
     const batch = await query.take(batchSize);
     
     // Process and filter submissions
