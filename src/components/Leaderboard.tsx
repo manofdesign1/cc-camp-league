@@ -102,8 +102,8 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
   const campStats = useMemo(() => {
     const totalTokens = allItems.reduce((sum, item) => sum + item.totalTokens, 0);
     const activeCount = allItems.filter(item => item.totalTokens > 0).length;
-    const dailyGoal = 100_000_000; // 100M per day
-    const goal = dailyGoal * filterDays;
+    const perPersonGoal = 20_000_000; // 20M per person per day
+    const goal = perPersonGoal * allItems.length * filterDays;
     const progress = Math.min(totalTokens / goal, 1);
     return { totalTokens, activeCount, goal, progress };
   }, [allItems, filterDays]);
