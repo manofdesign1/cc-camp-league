@@ -98,6 +98,16 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
     return Math.max(1, Math.round(diffMs / (24 * 60 * 60 * 1000)) + 1);
   }, [dateFrom, dateTo]);
 
+  // Camp-wide totals
+  const campStats = useMemo(() => {
+    const totalTokens = allItems.reduce((sum, item) => sum + item.totalTokens, 0);
+    const activeCount = allItems.filter(item => item.totalTokens > 0).length;
+    const dailyGoal = 100_000_000; // 100M per day
+    const goal = dailyGoal * filterDays;
+    const progress = Math.min(totalTokens / goal, 1);
+    return { totalTokens, activeCount, goal, progress };
+  }, [allItems, filterDays]);
+
   const getLevelEmoji = (tokens: number) => {
     if (tokens >= 500_000_000) return "🐉";
     if (tokens >= 300_000_000) return "🦅";
@@ -184,13 +194,30 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
           )}
         </div>
 
-        {/* Aggregated Stats */}
-        {globalStats && (
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-muted" />
-              <span className="text-muted">참가자</span>
-              <span className="font-bold">{formatNumber(globalStats.totalUsers)}</span>
+        {/* Camp Meter */}
+        {allItems.length > 0 && (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-muted" />
+                  <span className="text-muted">활동</span>
+                  <span className="font-bold">{campStats.activeCount}<span className="text-muted font-normal">/{allItems.length}</span></span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 font-mono text-xs">
+                <span className="font-bold text-accent">{formatNumber(campStats.totalTokens)}</span>
+                <span className="text-muted">/ {formatNumber(campStats.goal)}</span>
+              </div>
+            </div>
+            <div className="relative h-2 bg-surface-2 rounded-full overflow-hidden">
+              <motion.div
+                className="absolute inset-y-0 left-0 rounded-full"
+                style={{ background: campStats.progress >= 1 ? "linear-gradient(90deg, #22c55e, #4ade80)" : "linear-gradient(90deg, var(--accent), #f59e0b)" }}
+                initial={{ width: 0 }}
+                animate={{ width: `${campStats.progress * 100}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              />
             </div>
           </div>
         )}
