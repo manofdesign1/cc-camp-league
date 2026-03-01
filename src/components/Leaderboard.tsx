@@ -175,6 +175,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
       <div className="flex-shrink-0 px-6 py-3 border-b border-border">
         {allItems.length > 0 ? (
           <div className="space-y-2">
+            <p className="text-[10px] sm:text-xs text-muted">더 많이 쓰는 사람이 더 빠르게 성장합니다 🔥</p>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-muted" />
