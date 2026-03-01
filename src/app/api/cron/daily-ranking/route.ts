@@ -9,8 +9,8 @@ function getLevelEmoji(tokens: number) {
   if (tokens >= 300_000_000) return "🦅";
   if (tokens >= 150_000_000) return "🦚";
   if (tokens >= 80_000_000) return "🦩";
-  if (tokens >= 40_000_000) return "🦉";
-  if (tokens >= 20_000_000) return "🕊️";
+  if (tokens >= 40_000_000) return "🕊️";
+  if (tokens >= 20_000_000) return "🦉";
   if (tokens >= 8_000_000) return "🐓";
   if (tokens >= 3_000_000) return "🐥";
   if (tokens >= 1_000_000) return "🐣";

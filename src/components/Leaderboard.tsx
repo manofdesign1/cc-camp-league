@@ -120,8 +120,8 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
     if (tokens >= 300_000_000) return "🦅";
     if (tokens >= 150_000_000) return "🦚";
     if (tokens >= 80_000_000) return "🦩";
-    if (tokens >= 40_000_000) return "🦉";
-    if (tokens >= 20_000_000) return "🕊️";
+    if (tokens >= 40_000_000) return "🕊️";
+    if (tokens >= 20_000_000) return "🦉";
     if (tokens >= 8_000_000) return "🐓";
     if (tokens >= 3_000_000) return "🐥";
     if (tokens >= 1_000_000) return "🐣";
@@ -429,8 +429,8 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
           <span>🐣1M</span>
           <span>🐥3M</span>
           <span>🐓8M</span>
-          <span>🕊️20M</span>
-          <span>🦉40M</span>
+          <span>🦉20M</span>
+          <span>🕊️40M</span>
           <span>🦩80M</span>
           <span>🦚150M</span>
           <span>🦅300M</span>
