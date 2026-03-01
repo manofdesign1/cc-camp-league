@@ -377,7 +377,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
               {/* All participants loaded at once, no pagination needed */}
             </div>
           </div>
-        ) : isLoading || isDateFilterLoading ? (
+        ) : (
           <div className="h-full flex flex-col items-center justify-center">
             <img
               src="/delta-society-logo.png"
@@ -391,8 +391,6 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
               Delta Society
             </span>
           </div>
-        ) : (
-          <HowToJoin />
         )}
       </div>
 
