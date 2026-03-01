@@ -115,6 +115,12 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
     return () => observer.disconnect();
   }, [regularResult?.hasMore, isLoading, isDateFiltered, allItems.length]);
 
+  const filterDays = useMemo(() => {
+    if (!dateFrom || !dateTo) return 1;
+    const diffMs = new Date(dateTo + "T00:00:00").getTime() - new Date(dateFrom + "T00:00:00").getTime();
+    return Math.max(1, Math.round(diffMs / (24 * 60 * 60 * 1000)) + 1);
+  }, [dateFrom, dateTo]);
+
   const getLevelEmoji = (tokens: number) => {
     if (tokens >= 500_000_000) return "🐉";
     if (tokens >= 300_000_000) return "🦅";
@@ -345,7 +351,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
                     <div className="flex items-center gap-2.5 flex-1 min-w-0">
                       <div className="relative flex-shrink-0">
                         <span className="text-xl" title={`${formatNumber(submission.totalTokens)} tokens`}>
-                          {getLevelEmoji(submission.totalTokens)}
+                          {getLevelEmoji(Math.round(submission.totalTokens / filterDays))}
                         </span>
                         {submission.githubAvatar && (
                           <img
