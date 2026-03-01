@@ -112,6 +112,14 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
     return () => observer.disconnect();
   }, [regularResult?.hasMore, isLoading, isDateFiltered, allItems.length]);
 
+  const getLevelEmoji = (tokens: number) => {
+    if (tokens >= 50_000_000) return "🐉";
+    if (tokens >= 30_000_000) return "🦅";
+    if (tokens >= 15_000_000) return "🐓";
+    if (tokens >= 5_000_000) return "🐥";
+    return "🐣";
+  };
+
   const getRankChange = (username: string, currentRank: number) => {
     if (!prevPeriod || prevRankMap.size === 0) return null;
     const prevRank = prevRankMap.get(username);
@@ -323,12 +331,9 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
 
                     {/* User */}
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <Avatar
-                        src={submission.githubAvatar}
-                        githubUsername={submission.githubUsername}
-                        name={submission.githubName || submission.username}
-                        size="sm"
-                      />
+                      <span className="text-xl flex-shrink-0" title={`${formatNumber(submission.totalTokens)} tokens`}>
+                        {getLevelEmoji(submission.totalTokens)}
+                      </span>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm font-medium truncate">
@@ -386,8 +391,19 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
         </div>
       )}
 
+      {/* Level Guide */}
+      <div className="flex-shrink-0 px-6 py-2 border-t border-border">
+        <div className="flex items-center justify-center gap-3 text-xs text-muted">
+          <span>🐣 ~5M</span>
+          <span>🐥 5M</span>
+          <span>🐓 15M</span>
+          <span>🦅 30M</span>
+          <span>🐉 50M+</span>
+        </div>
+      </div>
+
       {/* Footer */}
-      <div className="flex-shrink-0 px-6 py-3 border-t border-border text-center text-xs text-muted">
+      <div className="flex-shrink-0 px-6 py-2 border-t border-border text-center text-xs text-muted">
         Made by{" "}
         <a href="https://thefuturemundane.com" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors underline underline-offset-2">Sung Kim</a>
         {" · "}
