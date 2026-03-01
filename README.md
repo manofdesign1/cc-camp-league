@@ -7,9 +7,12 @@ AI Native Camp 참가자들의 Claude Code 사용량 리더보드.
 ## 기능
 
 - Claude Code 토큰 사용량 실시간 리더보드
+- **캠프 전체 미터**: 일일 목표 = 1인 20M × 참가자 수 × 필터 일수 (참가자 변동 시 자동 조정)
+- 레벨 이모지 시스템 (🥚→🐣→🐥→🐓→🦉→🕊️→🦩→🦚→🦅→🐉)
+- 순위 변동 표시 (전 기간 대비 ▲▼)
 - GitHub OAuth 인증
 - CLI / 파일 업로드 제출 지원
-- 일별 사용량 차트
+- 일별 사용량 스파크라인 차트 (데스크톱)
 - 개인 프로필 페이지
 
 ## 기술 스택
@@ -17,7 +20,7 @@ AI Native Camp 참가자들의 Claude Code 사용량 리더보드.
 - **Frontend**: Next.js 16 + TypeScript + Tailwind CSS
 - **Database**: Convex (실시간 서버리스 DB)
 - **Auth**: NextAuth.js + GitHub OAuth
-- **Deploy**: Vercel
+- **Deploy**: Vercel (GitHub Actions CI/CD)
 - **CLI**: Node.js (npx cc-camp)
 
 ## 로컬 개발
