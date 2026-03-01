@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
       dateFrom: dateStr,
       dateTo: dateStr,
       sortBy: "tokens",
-      limit: 20,
+      limit: 10,
     });
 
     if (!result.items || result.items.length === 0) {
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
       ...lines,
       "",
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-      `참가자: ${result.items.length}명 | <https://cc-camp-league.vercel.app|리더보드 보기>`,
+      `Top ${result.items.length} | <https://cc-camp-league.vercel.app|전체 순위 보기>`,
     ].join("\n");
 
     // Post to Slack
