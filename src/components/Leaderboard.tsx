@@ -170,7 +170,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col max-w-3xl mx-auto w-full">
       {/* Header — Camp Meter */}
       <div className="flex-shrink-0 px-6 py-3 border-b border-border">
         {allItems.length > 0 ? (
