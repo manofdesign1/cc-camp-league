@@ -1,25 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  /* Dark theme with subtle warmth */
-  --background: #121212;
-  --background-secondary: #1a1a1a;
-  --foreground: #efefef;
-  --muted: #888888;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
-  --card: #1e1e1e;
-  --card-hover: #262626;
-  --border: #2e2e2e;
-  --border-subtle: #242424;
+  /* Delta Society Dark Theme */
+  --background: #1C1917;
+  --background-secondary: #292524;
+  --foreground: #F9F7F4;
+  --muted: #78716C;
+  --accent: #C0F0FB;
+  --accent-hover: #FFEA00;
+  --card: #292524;
+  --card-hover: #44403C;
+  --border: #44403C;
+  --border-subtle: #292524;
   --success: #22c55e;
   --error: #ef4444;
 
   /* Surface colors */
-  --surface-1: #161616;
-  --surface-2: #1e1e1e;
-  --surface-3: #262626;
-  --surface-4: #2e2e2e;
+  --surface-1: #211F1D;
+  --surface-2: #292524;
+  --surface-3: #44403C;
+  --surface-4: #57534E;
 }
 
 @theme inline {
@@ -27,6 +27,7 @@
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
   --color-card: var(--card);
   --color-border: var(--border);
   --font-sans: var(--font-geist-sans);
@@ -49,11 +50,11 @@ body {
   box-sizing: border-box;
 }
 
-/* Very subtle background gradient */
+/* Delta Society subtle background gradient */
 .gradient-mesh {
   background:
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(99, 102, 241, 0.03) 0%, transparent 40%);
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(192, 240, 251, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(255, 234, 0, 0.03) 0%, transparent 40%);
 }
 
 /* Simple fade animation */
@@ -64,7 +65,7 @@ body {
 
 .animate-fade-in { animation: fadeIn 0.4s ease-out; }
 
-/* Glass card - subtle, not overdone */
+/* Glass card */
 .glass-card {
   background: var(--card);
   border: 1px solid var(--border);
@@ -88,9 +89,9 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* Rank badges - solid colors, no excessive glow */
+/* Rank badges */
 .rank-gold {
-  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+  background: linear-gradient(135deg, #FFD700 0%, #FFEA00 100%);
 }
 
 .rank-silver {
@@ -101,7 +102,7 @@ body {
   background: linear-gradient(135deg, #fdba74 0%, #ea580c 100%);
 }
 
-/* Text gradient for headers only */
+/* Text gradient for headers */
 .text-gradient {
   background: linear-gradient(135deg, var(--foreground) 0%, var(--muted) 100%);
   -webkit-background-clip: text;
@@ -110,7 +111,7 @@ body {
 }
 
 .text-gradient-accent {
-  background: linear-gradient(135deg, var(--accent) 0%, #fb923c 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -135,10 +136,10 @@ body {
   background: var(--muted);
 }
 
-/* Selection */
+/* Selection - Delta Society accent */
 ::selection {
   background: var(--accent);
-  color: white;
+  color: #1C1917;
 }
 
 /* Focus styles */
@@ -156,7 +157,7 @@ body {
   background: var(--surface-2);
 }
 
-/* Stat shimmer - subtle */
+/* Stat shimmer */
 .stat-shimmer {
   background: linear-gradient(
     90deg,
@@ -166,11 +167,11 @@ body {
   );
 }
 
-/* Button glow - minimal */
+/* Button glow - Delta Society cyan */
 .btn-glow {
   transition: box-shadow 0.2s ease;
 }
 
 .btn-glow:hover {
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 4px 16px rgba(192, 240, 251, 0.25);
 }

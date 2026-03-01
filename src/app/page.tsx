@@ -68,7 +68,7 @@ export default function Home() {
                 <button
                   onClick={handleClaimAndMerge}
                   disabled={merging}
-                  className="px-3 py-1 bg-accent text-white text-xs rounded font-medium hover:bg-accent-hover transition-colors disabled:opacity-50"
+                  className="px-3 py-1 bg-accent text-[#1C1917] text-xs rounded font-medium hover:bg-accent-hover transition-colors disabled:opacity-50"
                 >
                   {merging ? "..." : claimStatus.actionNeeded === "claim" ? "인증" : "병합"}
                 </button>

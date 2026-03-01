@@ -14,10 +14,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CC Camp League — AI Native Camp 리더보드",
+  title: "AI Native Camp League — 리더보드",
   description: "AI Native Camp 참가자들의 Claude Code 사용량 리더보드. 더 많이 쓰는 사람이 더 빠르게 성장합니다.",
   keywords: ["claude code", "ai native camp", "leaderboard", "token usage", "ai coding"],
-  authors: [{ name: "AI Native Camp" }],
+  authors: [{ name: "AI Native Camp League" }],
   icons: {
     icon: "/icon.svg",
   },

@@ -32,7 +32,7 @@ export default function NavBar({ onUploadClick }: NavBarProps) {
                 <rect x="9.5" y="8" width="5" height="13" rx="1" fill="currentColor" opacity="0.75"/>
                 <rect x="16" y="3" width="5" height="18" rx="1" fill="currentColor"/>
               </svg>
-              <span className="font-semibold text-lg">CC Camp League</span>
+              <span className="font-semibold text-lg">AI Native Camp League</span>
             </Link>
 
             {isAdmin && (
@@ -49,7 +49,7 @@ export default function NavBar({ onUploadClick }: NavBarProps) {
           <div className="flex items-center gap-3">
             <button
               onClick={onUploadClick}
-              className="px-4 py-2 bg-accent text-white text-sm rounded-md font-medium hover:bg-accent-hover transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-accent text-[#1C1917] text-sm rounded-md font-medium hover:bg-accent-hover transition-colors flex items-center gap-2"
             >
               <Upload className="w-4 h-4" />
               제출하기
@@ -91,13 +91,13 @@ export default function NavBar({ onUploadClick }: NavBarProps) {
               <rect x="9.5" y="8" width="5" height="13" rx="1" fill="currentColor" opacity="0.75"/>
               <rect x="16" y="3" width="5" height="18" rx="1" fill="currentColor"/>
             </svg>
-            <span className="font-semibold">CC Camp</span>
+            <span className="font-semibold">AI Native Camp</span>
           </Link>
 
           <div className="flex items-center gap-2">
             <button
               onClick={onUploadClick}
-              className="px-3 py-1.5 bg-accent text-white text-sm rounded-md font-medium flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-accent text-[#1C1917] text-sm rounded-md font-medium flex items-center gap-1.5"
             >
               <Upload className="w-4 h-4" />
               제출

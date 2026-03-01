@@ -187,8 +187,8 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
                 onClick={() => setQuickFilter(days)}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   days === null
-                    ? (!dateFrom && !dateTo ? "bg-accent text-white" : "text-muted hover:text-foreground hover:bg-surface-2")
-                    : (isQuickFilterActive(days) ? "bg-accent text-white" : "text-muted hover:text-foreground hover:bg-surface-2")
+                    ? (!dateFrom && !dateTo ? "bg-accent text-[#1C1917]" : "text-muted hover:text-foreground hover:bg-surface-2")
+                    : (isQuickFilterActive(days) ? "bg-accent text-[#1C1917]" : "text-muted hover:text-foreground hover:bg-surface-2")
                 }`}
               >
                 {label}
@@ -206,7 +206,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
             <button
               onClick={() => setSortBy("cost")}
               className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-1.5 transition-colors ${
-                sortBy === "cost" ? "bg-accent text-white" : "text-muted hover:text-foreground hover:bg-surface-2"
+                sortBy === "cost" ? "bg-accent text-[#1C1917]" : "text-muted hover:text-foreground hover:bg-surface-2"
               }`}
             >
               <DollarSign className="w-4 h-4" />
@@ -215,7 +215,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
             <button
               onClick={() => setSortBy("tokens")}
               className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center gap-1.5 transition-colors ${
-                sortBy === "tokens" ? "bg-accent text-white" : "text-muted hover:text-foreground hover:bg-surface-2"
+                sortBy === "tokens" ? "bg-accent text-[#1C1917]" : "text-muted hover:text-foreground hover:bg-surface-2"
               }`}
             >
               <Zap className="w-4 h-4" />
@@ -352,14 +352,16 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
             <Loader2 className="w-5 h-5 animate-spin text-muted" />
           </div>
         ) : (
-          <div className="text-center py-16">
-            <Trophy className="w-10 h-10 text-muted mx-auto mb-3" />
-            <p className="text-base font-medium mb-1">아직 제출된 데이터가 없습니다</p>
-            <p className="text-sm text-muted mb-4">첫 번째 캠퍼가 되어보세요!</p>
-            <code className="text-sm font-mono text-accent">npx cc-camp</code>
-          </div>
+          <HowToJoin />
         )}
       </div>
+
+      {/* How to Join - always visible below leaderboard when there are items */}
+      {allItems.length > 0 && (
+        <div className="flex-shrink-0 border-t border-border">
+          <HowToJoin compact />
+        </div>
+      )}
 
       {/* Share Modal */}
       {showShareCard && allItems.find(s => s.id === showShareCard) && (
@@ -381,6 +383,71 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
           </div>
         </motion.div>
       )}
+    </div>
+  );
+}
+
+function HowToJoin({ compact = false }: { compact?: boolean }) {
+  const [copiedStep, setCopiedStep] = useState<number | null>(null);
+
+  const copyText = (text: string, step: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedStep(step);
+    setTimeout(() => setCopiedStep(null), 2000);
+  };
+
+  const commands = [
+    { cmd: "npx ccusage@latest --json > cc.json", label: "사용 데이터 추출" },
+    { cmd: "npx cc-camp", label: "리더보드에 제출" },
+  ];
+
+  if (compact) {
+    return (
+      <div className="px-6 py-3 flex items-center gap-4 text-xs text-muted">
+        <span className="flex-shrink-0">참여:</span>
+        {commands.map((c, i) => (
+          <button
+            key={i}
+            onClick={() => copyText(c.cmd, i)}
+            className="flex items-center gap-1.5 bg-background rounded px-2 py-1 border border-border hover:border-accent/50 transition-colors"
+          >
+            <code className="font-mono text-accent">{c.cmd}</code>
+            {copiedStep === i ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3 text-muted" />}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-16 px-6 max-w-md mx-auto text-center">
+      <Trophy className="w-10 h-10 text-accent mx-auto mb-4" />
+      <h2 className="text-lg font-bold mb-1">아직 참가자가 없습니다</h2>
+      <p className="text-sm text-muted mb-6">터미널에서 아래 명령어를 순서대로 실행하세요</p>
+
+      <div className="bg-surface-1 rounded-xl p-4 border border-border text-left space-y-2">
+        {commands.map((c, i) => (
+          <button
+            key={i}
+            onClick={() => copyText(c.cmd, i)}
+            className="w-full flex items-center justify-between gap-2 bg-background rounded-lg px-4 py-2.5 border border-border hover:border-accent/50 transition-colors group"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-muted text-xs font-mono">{i + 1}.</span>
+              <code className="text-sm font-mono text-accent truncate">{c.cmd}</code>
+            </div>
+            {copiedStep === i ? (
+              <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+            ) : (
+              <Copy className="w-4 h-4 text-muted group-hover:text-foreground flex-shrink-0" />
+            )}
+          </button>
+        ))}
+      </div>
+
+      <p className="text-xs text-muted mt-4">
+        또는 상단 <span className="text-accent font-medium">제출하기</span>로 cc.json 직접 업로드
+      </p>
     </div>
   );
 }

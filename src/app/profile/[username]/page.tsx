@@ -203,7 +203,7 @@ export default function ProfilePage() {
                     onClick={() => setSelectedTimeRange(range)}
                     className={`px-3 py-1 text-xs rounded-md transition-colors ${
                       selectedTimeRange === range
-                        ? "bg-accent text-white"
+                        ? "bg-accent text-[#1C1917]"
                         : "text-muted hover:text-foreground hover:bg-surface-2"
                     }`}
                   >

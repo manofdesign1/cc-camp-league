@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query, internal } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { Doc } from "./_generated/dataModel";
 import { rateLimiter } from "./rateLimiter";
 import { ConvexError } from "convex/values";
@@ -470,7 +470,7 @@ export const getLeaderboardByDateRange = query({
     
     // Apply cursor if provided
     if (args.cursor) {
-      query = query.filter(q => q.gt(q.field("_id"), args.cursor));
+      query = query.filter(q => q.gt(q.field("_id"), args.cursor!));
     }
     
     // Fetch a batch to process

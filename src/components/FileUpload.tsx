@@ -171,7 +171,7 @@ export default function FileUpload({ onSuccess }: FileUploadProps) {
               <button
                 onClick={handleSubmit}
                 disabled={uploadState === "loading"}
-                className="flex-1 py-2 bg-accent text-white text-sm rounded-md hover:bg-accent-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                className="flex-1 py-2 bg-accent text-[#1C1917] text-sm rounded-md hover:bg-accent-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 {uploadState === "loading" ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />

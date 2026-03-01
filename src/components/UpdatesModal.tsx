@@ -30,7 +30,7 @@ export default function UpdatesModal({ isOpen, onClose }: UpdatesModalProps) {
             <div className="px-4 py-3 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-accent" />
-                <h3 className="font-medium">CC Camp League</h3>
+                <h3 className="font-medium">AI Native Camp League</h3>
               </div>
               <button
                 onClick={onClose}
