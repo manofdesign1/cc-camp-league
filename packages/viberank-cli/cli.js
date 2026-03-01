@@ -82,12 +82,20 @@ if [ ! -f "$TMP_FILE" ] || [ ! -s "$TMP_FILE" ]; then
   exit 0
 fi
 
-# Submit to leaderboard
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$API/api/submit" \\
-  -H "Content-Type: application/json" \\
-  -H "X-GitHub-User: $USERNAME" \\
-  -H "X-CLI-Version: auto-sync-${CLI_VERSION}" \\
-  -d @"$TMP_FILE")
+# Submit to leaderboard (python3 for UTF-8 support)
+HTTP_CODE=$(python3 -c "
+import json, urllib.request
+data = json.load(open('$TMP_FILE'))
+data['_username'] = '$USERNAME'
+req = urllib.request.Request('$API/api/submit',
+    data=json.dumps(data).encode('utf-8'),
+    headers={'Content-Type': 'application/json'})
+try:
+    resp = urllib.request.urlopen(req)
+    print(resp.status)
+except urllib.error.HTTPError as e:
+    print(e.code)
+" 2>/dev/null)
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Sync done (HTTP $HTTP_CODE)" >> "$LOG"
 
@@ -115,8 +123,8 @@ function installCron() {
   // Remove old entry if exists
   const lines = current.split('\n').filter(l => !l.includes(CRON_TAG) && !l.includes('cc-camp'));
 
-  // Add new entry — every 30 minutes
-  lines.push(`*/30 * * * * ${SYNC_SCRIPT} ${CRON_TAG}`);
+  // Add new entry — every 5 minutes
+  lines.push(`*/5 * * * * ${SYNC_SCRIPT} ${CRON_TAG}`);
 
   const newCrontab = lines.filter(l => l.trim()).join('\n') + '\n';
   execSync(`echo "${newCrontab}" | crontab -`, { encoding: 'utf8' });
@@ -166,11 +174,11 @@ async function runSync(username, silent = false) {
   try {
     const ccData = JSON.parse(fs.readFileSync(tmpFile, 'utf8'));
 
+    ccData._username = username;
     const res = await fetch(`${API_URL}/api/submit`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-GitHub-User': username,
         'X-CLI-Version': `cli-${CLI_VERSION}`,
       },
       body: JSON.stringify(ccData),
@@ -221,7 +229,7 @@ async function setup() {
   const { username } = await prompts({
     type: 'text',
     name: 'username',
-    message: 'GitHub 사용자명:',
+    message: '이름:',
     initial: githubUser || '',
     validate: v => v.length > 0 || '필수 입력입니다',
   });
@@ -238,7 +246,7 @@ async function setup() {
   const spinner = ora('자동 동기화 설정 중...').start();
   createSyncScript(username);
   installCron();
-  spinner.succeed('자동 동기화 설정 완료 (30분 간격)');
+  spinner.succeed('자동 동기화 설정 완료 (5분 간격)');
 
   // Run first sync
   console.log('');
@@ -246,7 +254,7 @@ async function setup() {
 
   if (ok) {
     console.log(chalk.green.bold('✅ 설정 완료!'));
-    console.log(chalk.gray('   Claude Code를 사용하면 30분마다 자동으로 리더보드가 업데이트됩니다.'));
+    console.log(chalk.gray('   Claude Code를 사용하면 5분마다 자동으로 리더보드가 업데이트됩니다.'));
     console.log(chalk.gray(`   리더보드: ${API_URL}\n`));
   } else {
     console.log(chalk.yellow('\n⚠️  자동 동기화는 설정되었지만 첫 동기화에 실패했습니다.'));

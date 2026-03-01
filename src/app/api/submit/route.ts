@@ -53,8 +53,9 @@ export async function POST(request: NextRequest) {
       verified = true;
       console.log("OAuth submission from:", githubUsername);
     } else {
-      // CLI submission
-      githubUsername = request.headers.get("X-GitHub-User") || "anonymous";
+      // CLI submission — check body first (supports non-ASCII names), then header
+      githubUsername = ccData._username || request.headers.get("X-GitHub-User") || "anonymous";
+      if (ccData._username) delete ccData._username;
       source = "cli";
       verified = false;
       console.log("CLI submission from:", githubUsername);
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
       // Validate CLI submission has proper username
       if (githubUsername === "anonymous" || !githubUsername) {
         return NextResponse.json(
-          { error: "GitHub username is required for CLI submissions. Please provide X-GitHub-User header." },
+          { error: "Username is required for CLI submissions." },
           { status: 400 }
         );
       }
