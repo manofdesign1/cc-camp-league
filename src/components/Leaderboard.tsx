@@ -171,46 +171,25 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
+      {/* Header — Camp Meter */}
       <div className="flex-shrink-0 px-6 py-3 border-b border-border">
-        <div className="flex items-center justify-between gap-4 mb-3">
-          <div>
-            <h1 className="text-base sm:text-xl font-bold">AI Native Camp 리더보드</h1>
-            <p className="text-[10px] sm:text-xs text-muted mt-0.5">더 많이 쓰는 사람이 더 빠르게 성장합니다 🔥</p>
-          </div>
-          {onCopyCommand && (
-            <button
-              onClick={onCopyCommand}
-              className="hidden sm:flex items-center gap-2 px-4 py-2.5 text-sm bg-surface-1 hover:bg-surface-2 border border-border rounded-lg transition-colors"
-            >
-              <Terminal className="w-4 h-4 text-muted" />
-              <code className="font-mono text-accent font-medium">npx cc-camp</code>
-              {copiedToClipboard ? (
-                <Check className="w-4 h-4 text-green-500" />
-              ) : (
-                <Copy className="w-4 h-4 text-muted" />
-              )}
-            </button>
-          )}
-        </div>
-
-        {/* Camp Meter */}
-        {allItems.length > 0 && (
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-muted" />
-                  <span className="text-muted">활동</span>
-                  <span className="font-bold">{campStats.activeCount}<span className="text-muted font-normal">/{allItems.length}</span></span>
-                </div>
+        {allItems.length > 0 ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-muted" />
+                <span className="text-sm text-muted">활동</span>
+                <span className="text-lg font-bold">{campStats.activeCount}<span className="text-sm text-muted font-normal">/{allItems.length}</span></span>
               </div>
-              <div className="flex items-center gap-1.5 font-mono text-xs">
-                <span className="font-bold text-accent">{formatNumber(campStats.totalTokens)}</span>
-                <span className="text-muted">/ {formatNumber(campStats.goal)}</span>
+              <div className="text-right">
+                <div className="font-mono text-sm">
+                  <span className="font-bold text-accent">{formatNumber(campStats.totalTokens)}</span>
+                  <span className="text-muted"> / {formatNumber(campStats.goal)}</span>
+                </div>
+                <div className="text-[10px] text-muted">{Math.round(campStats.progress * 100)}%</div>
               </div>
             </div>
-            <div className="relative h-2 bg-surface-2 rounded-full overflow-hidden">
+            <div className="relative h-2.5 bg-surface-2 rounded-full overflow-hidden">
               <motion.div
                 className="absolute inset-y-0 left-0 rounded-full"
                 style={{ background: campStats.progress >= 1 ? "linear-gradient(90deg, #22c55e, #4ade80)" : "linear-gradient(90deg, var(--accent), #f59e0b)" }}
@@ -219,6 +198,11 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
                 transition={{ duration: 0.8, ease: "easeOut" }}
               />
             </div>
+          </div>
+        ) : (
+          <div>
+            <h1 className="text-base sm:text-xl font-bold">AI Native Camp 리더보드</h1>
+            <p className="text-[10px] sm:text-xs text-muted mt-0.5">더 많이 쓰는 사람이 더 빠르게 성장합니다 🔥</p>
           </div>
         )}
       </div>
@@ -344,7 +328,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
                         if (change.type === 'new') return <span className="text-[10px] font-bold text-accent">NEW</span>;
                         if (change.type === 'up') return <span className="text-[10px] font-bold text-green-500">▲{change.value}</span>;
                         if (change.type === 'down') return <span className="text-[10px] font-bold text-red-400">▼{change.value}</span>;
-                        return <span className="text-[10px] text-muted/50">—</span>;
+                        return null;
                       })()}
                     </div>
 
@@ -389,12 +373,20 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
 
                     {/* Cost */}
                     <div className={`w-24 text-right flex-shrink-0 ${sortBy === "tokens" ? "hidden sm:block" : ""}`}>
-                      <div className="text-sm font-mono font-semibold text-accent">${formatCurrency(submission.totalCost)}</div>
+                      {submission.totalCost > 0 ? (
+                        <div className="text-sm font-mono font-semibold text-accent">${formatCurrency(submission.totalCost)}</div>
+                      ) : (
+                        <div className="text-sm font-mono text-muted/30">—</div>
+                      )}
                     </div>
 
                     {/* Tokens */}
                     <div className={`w-24 text-right flex-shrink-0 ${sortBy === "cost" ? "hidden sm:block" : ""}`}>
-                      <div className="text-sm font-mono text-muted">{formatNumber(submission.totalTokens)}</div>
+                      {submission.totalTokens > 0 ? (
+                        <div className="text-sm font-mono text-muted">{formatNumber(submission.totalTokens)}</div>
+                      ) : (
+                        <div className="text-sm font-mono text-muted/30">—</div>
+                      )}
                     </div>
 
                   </motion.div>
@@ -421,11 +413,9 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
         )}
       </div>
 
-      {/* How to Join - always visible below leaderboard when there are items */}
+      {/* How to Join — collapsible */}
       {allItems.length > 0 && (
-        <div className="flex-shrink-0 border-t border-border">
-          <HowToJoin compact />
-        </div>
+        <CollapsibleJoin />
       )}
 
       {/* Level Guide */}
@@ -452,6 +442,35 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
         <a href="https://deltasociety.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors underline underline-offset-2">Delta Society</a>
       </div>
 
+    </div>
+  );
+}
+
+function CollapsibleJoin() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="flex-shrink-0 border-t border-border">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full px-6 py-2 text-[10px] sm:text-xs text-muted hover:text-foreground transition-colors flex items-center justify-center gap-1"
+      >
+        <Terminal className="w-3 h-3" />
+        <span>참여 / 삭제 방법</span>
+        <span className={`transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <HowToJoin compact />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
