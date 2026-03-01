@@ -1,0 +1,32 @@
+{
+  "name": "cc-camp",
+  "version": "1.0.0",
+  "description": "AI Native Camp — Claude Code 사용량 리더보드 CLI",
+  "type": "module",
+  "main": "cli.js",
+  "bin": {
+    "cc-camp": "./cli.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "cc-camp",
+    "claude",
+    "ccusage",
+    "leaderboard",
+    "ai-native-camp",
+    "cli"
+  ],
+  "author": "AI Native Camp",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "ora": "^8.0.1",
+    "prompts": "^2.4.2",
+    "node-fetch": "^3.3.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

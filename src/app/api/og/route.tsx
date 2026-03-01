@@ -1,0 +1,83 @@
+import { ImageResponse } from 'next/og';
+
+export const runtime = 'edge';
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+
+    const title = searchParams.get('title') || 'CC Camp League';
+    const description = searchParams.get('description') || 'AI Native Camp 리더보드';
+
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            height: '100%',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#121212',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
+            <svg width="72" height="72" viewBox="0 0 24 24" fill="none" style={{ marginRight: 20 }}>
+              <rect x="3" y="14" width="5" height="7" rx="1" fill="#6366f1" opacity="0.5"/>
+              <rect x="9.5" y="8" width="5" height="13" rx="1" fill="#6366f1" opacity="0.75"/>
+              <rect x="16" y="3" width="5" height="18" rx="1" fill="#6366f1"/>
+            </svg>
+            <h1
+              style={{
+                fontSize: 72,
+                fontWeight: 'bold',
+                color: '#fafafa',
+                margin: 0,
+              }}
+            >
+              {title}
+            </h1>
+          </div>
+
+          <p
+            style={{
+              fontSize: 32,
+              color: '#a1a1aa',
+              margin: '0 40px',
+              textAlign: 'center',
+              maxWidth: 800,
+            }}
+          >
+            {description}
+          </p>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              marginTop: 48,
+              padding: '16px 32px',
+              backgroundColor: '#1e1e1e',
+              borderRadius: 12,
+              border: '1px solid #2e2e2e',
+            }}
+          >
+            <span style={{ fontSize: 24, color: '#a1a1aa' }}>$</span>
+            <span style={{ fontSize: 24, color: '#6366f1', fontFamily: 'monospace' }}>npx cc-camp</span>
+          </div>
+        </div>
+      ),
+      {
+        width: 1200,
+        height: 630,
+      },
+    );
+  } catch (e: unknown) {
+    console.log(`${(e as Error).message}`);
+    return new Response(`Failed to generate the image`, {
+      status: 500,
+    });
+  }
+}
