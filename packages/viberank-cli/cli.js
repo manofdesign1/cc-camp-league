@@ -3,6 +3,7 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import ora from 'ora';
@@ -15,207 +16,329 @@ const __dirname = path.dirname(__filename);
 const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
 const CLI_VERSION = packageJson.version;
 
-// Deployment URL — update after Vercel deploy
 const API_URL = process.env.CC_CAMP_API_URL || 'https://cc-camp-league.vercel.app';
+const CONFIG_DIR = path.join(os.homedir(), '.cc-camp');
+const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
+const SYNC_SCRIPT = path.join(CONFIG_DIR, 'sync.sh');
+const SYNC_LOG = path.join(CONFIG_DIR, 'sync.log');
+const CRON_TAG = '# cc-camp-auto-sync';
 
-async function main() {
-  console.log(chalk.hex('#6366f1').bold(`\n🏕️  CC Camp League v${CLI_VERSION}\n`));
-  console.log(chalk.gray('AI Native Camp — Claude Code 사용량 리더보드\n'));
+// --- Config helpers ---
 
-  // Try to get GitHub username
-  let githubUser;
+function readConfig() {
+  try {
+    return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function writeConfig(config) {
+  fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+}
+
+// --- Find node binary path ---
+
+function getNodePath() {
+  try {
+    return execSync('which node', { encoding: 'utf8' }).trim();
+  } catch {
+    return '/usr/local/bin/node';
+  }
+}
+
+function getNpxPath() {
+  try {
+    return execSync('which npx', { encoding: 'utf8' }).trim();
+  } catch {
+    return '/usr/local/bin/npx';
+  }
+}
+
+// --- Sync script ---
+
+function createSyncScript(username) {
+  const nodePath = getNodePath();
+  const npxPath = getNpxPath();
+  const nodeDir = path.dirname(nodePath);
+
+  const script = `#!/bin/bash
+# AI Native Camp League — Auto Sync
+export PATH="${nodeDir}:/usr/local/bin:/opt/homebrew/bin:$PATH"
+
+USERNAME="${username}"
+API="${API_URL}"
+TMP_FILE="/tmp/cc-camp-usage.json"
+LOG="${SYNC_LOG}"
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Sync started" >> "$LOG"
+
+# Generate usage data
+"${npxPath}" --yes ccusage@latest --json > "$TMP_FILE" 2>/dev/null
+
+if [ ! -f "$TMP_FILE" ] || [ ! -s "$TMP_FILE" ]; then
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] No usage data found" >> "$LOG"
+  exit 0
+fi
+
+# Submit to leaderboard
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$API/api/submit" \\
+  -H "Content-Type: application/json" \\
+  -H "X-GitHub-User: $USERNAME" \\
+  -H "X-CLI-Version: auto-sync-${CLI_VERSION}" \\
+  -d @"$TMP_FILE")
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Sync done (HTTP $HTTP_CODE)" >> "$LOG"
+
+# Keep log small
+tail -100 "$LOG" > "$LOG.tmp" && mv "$LOG.tmp" "$LOG"
+`;
+
+  fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  fs.writeFileSync(SYNC_SCRIPT, script, { mode: 0o755 });
+}
+
+// --- Cron helpers ---
+
+function getCurrentCrontab() {
+  try {
+    return execSync('crontab -l 2>/dev/null', { encoding: 'utf8' });
+  } catch {
+    return '';
+  }
+}
+
+function installCron() {
+  const current = getCurrentCrontab();
+
+  // Remove old entry if exists
+  const lines = current.split('\n').filter(l => !l.includes(CRON_TAG) && !l.includes('cc-camp'));
+
+  // Add new entry — every 30 minutes
+  lines.push(`*/30 * * * * ${SYNC_SCRIPT} ${CRON_TAG}`);
+
+  const newCrontab = lines.filter(l => l.trim()).join('\n') + '\n';
+  execSync(`echo "${newCrontab}" | crontab -`, { encoding: 'utf8' });
+}
+
+function removeCron() {
+  const current = getCurrentCrontab();
+  const lines = current.split('\n').filter(l => !l.includes(CRON_TAG) && !l.includes('cc-camp'));
+  const newCrontab = lines.filter(l => l.trim()).join('\n') + '\n';
+
+  if (lines.filter(l => l.trim()).length === 0) {
+    try { execSync('crontab -r 2>/dev/null'); } catch {}
+  } else {
+    execSync(`echo "${newCrontab}" | crontab -`, { encoding: 'utf8' });
+  }
+}
+
+function isCronInstalled() {
+  const current = getCurrentCrontab();
+  return current.includes(CRON_TAG);
+}
+
+// --- Sync (one-shot) ---
+
+async function runSync(username, silent = false) {
+  const spinner = silent ? null : ora('사용 데이터 수집 중...').start();
 
   try {
-    const remoteUrl = execSync('git config --get remote.origin.url', { encoding: 'utf8' }).trim();
-    const githubMatch = remoteUrl.match(/github\.com[:/]([^/]+)\//);
-    if (githubMatch) {
-      githubUser = githubMatch[1];
-      console.log(chalk.gray(`GitHub 사용자 감지: ${githubUser}`));
+    execSync('npx --yes ccusage@latest --json > /tmp/cc-camp-usage.json', {
+      encoding: 'utf8',
+      stdio: 'pipe',
+      timeout: 60000,
+    });
+  } catch {
+    spinner?.fail('사용 데이터를 가져올 수 없습니다. Claude Code를 먼저 사용해주세요.');
+    return false;
+  }
+
+  const tmpFile = '/tmp/cc-camp-usage.json';
+  if (!fs.existsSync(tmpFile) || fs.statSync(tmpFile).size === 0) {
+    spinner?.fail('사용 데이터가 없습니다.');
+    return false;
+  }
+
+  spinner?.start('리더보드에 제출 중...');
+
+  try {
+    const ccData = JSON.parse(fs.readFileSync(tmpFile, 'utf8'));
+
+    const res = await fetch(`${API_URL}/api/submit`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-GitHub-User': username,
+        'X-CLI-Version': `cli-${CLI_VERSION}`,
+      },
+      body: JSON.stringify(ccData),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      spinner?.fail(err.error || `제출 실패 (${res.status})`);
+      return false;
     }
-  } catch (error) {}
+
+    const result = await res.json();
+    spinner?.succeed('동기화 완료!');
+
+    if (!silent) {
+      console.log(`\n  💰 총 비용: ${chalk.green('$' + Math.round(ccData.totals.totalCost))}`);
+      console.log(`  📊 총 토큰: ${chalk.green(ccData.totals.totalTokens.toLocaleString())}`);
+      console.log(`  📅 추적 일수: ${chalk.green(ccData.daily.length)}`);
+      console.log(`\n  🔗 ${chalk.cyan(`${API_URL}${result.profileUrl}`)}\n`);
+    }
+
+    return true;
+  } catch (err) {
+    spinner?.fail(`동기화 실패: ${err.message}`);
+    return false;
+  }
+}
+
+// --- Commands ---
+
+async function setup() {
+  console.log(chalk.cyan.bold(`\n🏕️  AI Native Camp League — 자동 동기화 설정\n`));
+
+  // Detect GitHub username
+  let githubUser;
+  try {
+    const remoteUrl = execSync('git config --get remote.origin.url', { encoding: 'utf8' }).trim();
+    const match = remoteUrl.match(/github\.com[:/]([^/]+)\//);
+    if (match) githubUser = match[1];
+  } catch {}
 
   if (!githubUser) {
     try {
       githubUser = execSync('git config user.name', { encoding: 'utf8' }).trim();
-      console.log(chalk.yellow('경고: git config user.name 사용 중 — GitHub 사용자명과 다를 수 있습니다'));
-    } catch (error) {
-      console.log(chalk.yellow('GitHub 사용자명을 자동 감지하지 못했습니다'));
-    }
+    } catch {}
   }
 
-  const response = await prompts({
+  const { username } = await prompts({
     type: 'text',
     name: 'username',
     message: 'GitHub 사용자명:',
     initial: githubUser || '',
-    validate: value => value.length > 0 || '사용자명이 필요합니다'
+    validate: v => v.length > 0 || '필수 입력입니다',
   });
 
-  if (!response.username) {
-    console.log(chalk.red('사용자명이 필요합니다.'));
+  if (!username) {
+    console.log(chalk.red('취소되었습니다.'));
     process.exit(1);
   }
 
-  githubUser = response.username;
+  // Save config
+  writeConfig({ username, apiUrl: API_URL, installedAt: new Date().toISOString() });
 
-  // Check if cc.json already exists
-  let ccJsonPath = path.join(process.cwd(), 'cc.json');
-  let usingExistingFile = false;
+  // Create sync script
+  const spinner = ora('자동 동기화 설정 중...').start();
+  createSyncScript(username);
+  installCron();
+  spinner.succeed('자동 동기화 설정 완료 (30분 간격)');
 
-  if (fs.existsSync(ccJsonPath)) {
-    const response = await prompts({
-      type: 'confirm',
-      name: 'useExisting',
-      message: '기존 cc.json 파일을 사용하시겠습니까?',
-      initial: true
-    });
+  // Run first sync
+  console.log('');
+  const ok = await runSync(username);
 
-    if (!response.useExisting) {
-      const spinner = ora('ccusage로 사용 데이터 생성 중...').start();
-
-      try {
-        execSync('npx ccusage@latest --json > cc.json', {
-          encoding: 'utf8',
-          stdio: 'pipe'
-        });
-        spinner.succeed('cc.json 생성 완료');
-      } catch (error) {
-        spinner.fail('cc.json 생성 실패');
-        console.error(chalk.red('오류:', error.message));
-        console.log(chalk.yellow('\nClaude Code를 한 번 이상 실행한 후 다시 시도해주세요.'));
-        process.exit(1);
-      }
-    } else {
-      usingExistingFile = true;
-      console.log(chalk.green('✓ 기존 cc.json 사용'));
-    }
+  if (ok) {
+    console.log(chalk.green.bold('✅ 설정 완료!'));
+    console.log(chalk.gray('   Claude Code를 사용하면 30분마다 자동으로 리더보드가 업데이트됩니다.'));
+    console.log(chalk.gray(`   리더보드: ${API_URL}\n`));
   } else {
-    const spinner = ora('ccusage로 사용 데이터 생성 중...').start();
+    console.log(chalk.yellow('\n⚠️  자동 동기화는 설정되었지만 첫 동기화에 실패했습니다.'));
+    console.log(chalk.gray('   Claude Code를 사용한 후 자동으로 동기화됩니다.\n'));
+  }
+}
 
-    try {
-      execSync('npx ccusage@latest --json > cc.json', {
-        encoding: 'utf8',
-        stdio: 'pipe'
-      });
-      spinner.succeed('cc.json 생성 완료');
-    } catch (error) {
-      spinner.fail('cc.json 생성 실패');
-      console.error(chalk.red('오류:', error.message));
-      console.log(chalk.yellow('\nClaude Code를 한 번 이상 실행한 후 다시 시도해주세요.'));
-      process.exit(1);
-    }
+async function status() {
+  const config = readConfig();
+  if (!config) {
+    console.log(chalk.yellow('\n설정되지 않았습니다. 먼저 설정을 진행합니다.\n'));
+    return setup();
   }
 
-  // Read and display summary
-  try {
-    const data = JSON.parse(fs.readFileSync(ccJsonPath, 'utf8'));
-    console.log('\n📊 요약:');
-    console.log(`  총 비용: ${chalk.green('$' + Math.round(data.totals.totalCost))}`);
-    console.log(`  총 토큰: ${chalk.green(data.totals.totalTokens.toLocaleString())}`);
-    console.log(`  추적 일수: ${chalk.green(data.daily.length)}\n`);
-  } catch (error) {
-    console.error(chalk.red('cc.json 읽기 오류:', error.message));
-    process.exit(1);
+  console.log(chalk.cyan.bold(`\n🏕️  AI Native Camp League — 상태\n`));
+  console.log(`  사용자: ${chalk.white(config.username)}`);
+  console.log(`  자동 동기화: ${isCronInstalled() ? chalk.green('활성') : chalk.red('비활성')}`);
+  console.log(`  설정일: ${chalk.gray(config.installedAt)}`);
+
+  // Show last sync from log
+  if (fs.existsSync(SYNC_LOG)) {
+    const log = fs.readFileSync(SYNC_LOG, 'utf8').trim().split('\n');
+    const lastLine = log[log.length - 1];
+    console.log(`  마지막 동기화: ${chalk.gray(lastLine)}`);
   }
 
-  // Confirm submission
-  const confirmResponse = await prompts({
-    type: 'confirm',
-    name: 'submit',
-    message: 'CC Camp League에 제출하시겠습니까?',
-    initial: true
-  });
+  console.log(`  리더보드: ${chalk.cyan(API_URL)}\n`);
+}
 
-  if (!confirmResponse.submit) {
-    console.log(chalk.yellow('제출이 취소되었습니다.'));
-    process.exit(0);
+async function remove() {
+  console.log(chalk.cyan.bold(`\n🏕️  AI Native Camp League — 자동 동기화 해제\n`));
+
+  removeCron();
+
+  if (fs.existsSync(CONFIG_DIR)) {
+    fs.rmSync(CONFIG_DIR, { recursive: true, force: true });
   }
 
-  // Submit
-  const submitSpinner = ora('CC Camp League에 제출 중...').start();
+  console.log(chalk.green('✅ 자동 동기화가 해제되었습니다.\n'));
+}
 
-  let attempt = 0;
-  const maxAttempts = 3;
-  const retryDelay = 5000;
+// --- Main ---
 
-  while (attempt < maxAttempts) {
-    attempt++;
+async function main() {
+  const command = process.argv[2];
 
-    try {
-      const ccData = JSON.parse(fs.readFileSync(ccJsonPath, 'utf8'));
+  switch (command) {
+    case 'setup':
+      return setup();
 
-      const response = await fetch(`${API_URL}/api/submit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-GitHub-User': githubUser,
-          'X-CLI-Version': CLI_VERSION
-        },
-        body: JSON.stringify(ccData)
-      });
-
-      if (!response.ok) {
-        let errorMessage = `서버 응답: ${response.status} ${response.statusText}`;
-
-        try {
-          const errorData = await response.json();
-          if (errorData.error) errorMessage = errorData.error;
-        } catch {}
-
-        if (response.status === 503 && attempt < maxAttempts) {
-          submitSpinner.text = `서버 일시 장애. ${retryDelay/1000}초 후 재시도... (${attempt}/${maxAttempts})`;
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
-          continue;
-        }
-
-        submitSpinner.fail('제출 실패');
-        console.error(chalk.red('오류:', errorMessage));
-        process.exit(1);
+    case 'sync':
+      const config = readConfig();
+      if (!config) {
+        console.log(chalk.yellow('먼저 설정이 필요합니다.\n'));
+        return setup();
       }
+      console.log(chalk.cyan.bold(`\n🏕️  AI Native Camp League — 수동 동기화\n`));
+      await runSync(config.username);
+      break;
 
-      const result = await response.json();
+    case 'status':
+      return status();
 
-      if (result.success) {
-        submitSpinner.succeed('CC Camp League 제출 완료! 🎉');
-        console.log(`\n프로필 확인: ${chalk.hex('#6366f1')(result.profileUrl)}\n`);
-        break;
+    case 'remove':
+    case 'uninstall':
+      return remove();
+
+    case 'help':
+    case '--help':
+    case '-h':
+      console.log(chalk.cyan.bold(`\n🏕️  AI Native Camp League v${CLI_VERSION}\n`));
+      console.log('사용법:');
+      console.log(`  ${chalk.white('npx cc-camp')}          설정 또는 상태 확인`);
+      console.log(`  ${chalk.white('npx cc-camp setup')}    자동 동기화 설정 (최초 1회)`);
+      console.log(`  ${chalk.white('npx cc-camp sync')}     수동 동기화`);
+      console.log(`  ${chalk.white('npx cc-camp status')}   동기화 상태 확인`);
+      console.log(`  ${chalk.white('npx cc-camp remove')}   자동 동기화 해제\n`);
+      break;
+
+    default: {
+      // No command: if already set up → status, else → setup
+      const existing = readConfig();
+      if (existing) {
+        return status();
       } else {
-        submitSpinner.fail('제출 실패');
-        console.error(chalk.red('오류:', result.error || '알 수 없는 오류'));
-        process.exit(1);
+        return setup();
       }
-    } catch (error) {
-      if ((error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') && attempt < maxAttempts) {
-        submitSpinner.text = `연결 실패. ${retryDelay/1000}초 후 재시도... (${attempt}/${maxAttempts})`;
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
-        continue;
-      }
-
-      submitSpinner.fail('제출 실패');
-      console.error(chalk.red('오류:', error.message));
-      process.exit(1);
     }
   }
-
-  // Cleanup
-  if (!usingExistingFile) {
-    const cleanupResponse = await prompts({
-      type: 'confirm',
-      name: 'cleanup',
-      message: 'cc.json 파일을 삭제하시겠습니까?',
-      initial: false
-    });
-
-    if (cleanupResponse.cleanup) {
-      fs.unlinkSync(ccJsonPath);
-      console.log(chalk.green('✓ cc.json 삭제 완료'));
-    }
-  }
-
-  console.log(chalk.green('\n완료! 🏕️'));
 }
 
 main().catch(error => {
-  console.error(chalk.red('예기치 않은 오류:', error.message));
+  console.error(chalk.red('오류:', error.message));
   process.exit(1);
 });
