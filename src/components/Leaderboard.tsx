@@ -37,7 +37,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
   );
 
   // Fetch date-filtered data
-  const { data: dateFilteredResult } = useLeaderboardByDateRange(
+  const { data: dateFilteredResult, isLoading: isDateFilterLoading } = useLeaderboardByDateRange(
     dateFrom && dateTo ? { dateFrom, dateTo, sortBy, limit: 200 } : "skip"
   );
 
@@ -371,7 +371,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
               {/* All participants loaded at once, no pagination needed */}
             </div>
           </div>
-        ) : !hasLoadedOnce || isLoading ? (
+        ) : !hasLoadedOnce || isLoading || isDateFilterLoading ? (
           <div className="h-full flex flex-col items-center justify-center">
             <img
               src="/delta-society-logo.png"
