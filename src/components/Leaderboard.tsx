@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Medal, Award, DollarSign, Zap, Calendar, X, BadgeCheck, Loader2, Terminal, Copy, Check, Users } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -19,26 +19,26 @@ interface LeaderboardProps {
 
 export default function Leaderboard({ onCopyCommand, copiedToClipboard }: LeaderboardProps) {
   const [sortBy, setSortBy] = useState<SortBy>("tokens");
-  // Default to "전체" — 모든 참가자가 보여야 함
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  // Default to "오늘" (KST)
+  const getKstDateStatic = (date: Date = new Date()) =>
+    new Date(date.getTime() + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const [dateFrom, setDateFrom] = useState<string>(getKstDateStatic());
+  const [dateTo, setDateTo] = useState<string>(getKstDateStatic());
   const [showFilters, setShowFilters] = useState(false);
-  const [page, setPage] = useState(0);
   const [allItems, setAllItems] = useState<Submission[]>([]);
   const { data: session } = useSession();
-  const loadMoreRef = useRef<HTMLDivElement>(null);
   const { data: globalStats } = useGlobalStats();
 
-  const ITEMS_PER_PAGE = 25;
-  const isDateFiltered = dateFrom && dateTo;
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
-  const { data: regularResult, isLoading } = useLeaderboard(
-    !isDateFiltered ? { sortBy, page, pageSize: ITEMS_PER_PAGE } : "skip"
+  // Always fetch all participants (full list)
+  const { data: allParticipantsResult, isLoading } = useLeaderboard(
+    { sortBy, page: 0, pageSize: 200 }
   );
 
+  // Fetch date-filtered data
   const { data: dateFilteredResult } = useLeaderboardByDateRange(
-    isDateFiltered ? { dateFrom, dateTo, sortBy, limit: 100 } : "skip"
+    dateFrom && dateTo ? { dateFrom, dateTo, sortBy, limit: 200 } : "skip"
   );
 
   // Previous period for rank change comparison
@@ -74,45 +74,45 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
 
   useEffect(() => {
     setAllItems([]);
-    setPage(0);
   }, [sortBy, dateFrom, dateTo]);
 
+  // Merge: all participants shown, date-filtered values overlaid (0 if no data)
   useEffect(() => {
-    if (isDateFiltered && dateFilteredResult?.items) {
-      setHasLoadedOnce(true);
-      setAllItems(dateFilteredResult.items);
-    } else if (!isDateFiltered && regularResult?.items) {
-      setHasLoadedOnce(true);
-      if (page === 0) {
-        setAllItems(regularResult.items);
-      } else {
-        setAllItems(prev => {
-          const existingIds = new Set(prev.map(item => item.id));
-          const newItems = regularResult.items.filter(item => !existingIds.has(item.id));
-          return [...prev, ...newItems];
-        });
-      }
+    if (!allParticipantsResult?.items) return;
+    setHasLoadedOnce(true);
+
+    if (dateFrom && dateTo && dateFilteredResult) {
+      const filteredMap = new Map(
+        (dateFilteredResult.items || []).map(item => [
+          item.githubUsername || item.username, item
+        ])
+      );
+
+      const merged = allParticipantsResult.items.map(participant => {
+        const key = participant.githubUsername || participant.username;
+        const filtered = filteredMap.get(key);
+        if (filtered) return filtered;
+        return {
+          ...participant,
+          totalTokens: 0,
+          totalCost: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+          cacheCreationTokens: 0,
+          cacheReadTokens: 0,
+          dailyBreakdown: [],
+        };
+      });
+
+      merged.sort((a, b) =>
+        sortBy === "cost" ? b.totalCost - a.totalCost : b.totalTokens - a.totalTokens
+      );
+
+      setAllItems(merged);
+    } else {
+      setAllItems(allParticipantsResult.items);
     }
-  }, [regularResult, dateFilteredResult, page, isDateFiltered]);
-
-  useEffect(() => {
-    if (isDateFiltered || !regularResult?.hasMore) return;
-
-    const currentRef = loadMoreRef.current;
-    if (!currentRef) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !isLoading) {
-          setPage(p => p + 1);
-        }
-      },
-      { threshold: 0.1, rootMargin: "100px" }
-    );
-
-    observer.observe(currentRef);
-    return () => observer.disconnect();
-  }, [regularResult?.hasMore, isLoading, isDateFiltered, allItems.length]);
+  }, [allParticipantsResult, dateFilteredResult, dateFrom, dateTo, sortBy]);
 
   const filterDays = useMemo(() => {
     if (!dateFrom || !dateTo) return 1;
@@ -156,33 +156,27 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
     return "";
   };
 
-  const getKstDate = (date: Date = new Date()) =>
-    new Date(date.getTime() + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
-
   const setQuickFilter = (days: number | null) => {
-    if (days === null) {
-      setDateFrom("");
-      setDateTo("");
-    } else if (days === 0) {
-      const t = getKstDate();
+    if (days === 0) {
+      const t = getKstDateStatic();
       setDateFrom(t);
       setDateTo(t);
-    } else {
+    } else if (days) {
       const now = new Date();
       const from = new Date(now);
       from.setDate(now.getDate() - days);
-      setDateFrom(getKstDate(from));
-      setDateTo(getKstDate(now));
+      setDateFrom(getKstDateStatic(from));
+      setDateTo(getKstDateStatic(now));
     }
   };
 
   const isQuickFilterActive = (days: number | null) => {
-    if (days === null) return !dateFrom && !dateTo;
     if (!dateFrom || !dateTo) return false;
     if (days === 0) {
-      const t = getKstDate();
+      const t = getKstDateStatic();
       return dateFrom === t && dateTo === t;
     }
+    if (days === null) return false;
     const diff = Math.round((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / (24 * 60 * 60 * 1000));
     return diff === days;
   };
@@ -231,7 +225,6 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
             {[
               { label: "오늘", days: 0 },
               { label: "7일", days: 7 },
-              { label: "전체", days: null },
             ].map(({ label, days }) => (
               <button
                 key={label}
@@ -403,11 +396,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
                 );
               })}
 
-              {!isDateFiltered && regularResult?.hasMore && (
-                <div ref={loadMoreRef} className="py-4 text-center">
-                  <Loader2 className="w-4 h-4 animate-spin mx-auto text-muted" />
-                </div>
-              )}
+              {/* All participants loaded at once, no pagination needed */}
             </div>
           </div>
         ) : !hasLoadedOnce || isLoading ? (
