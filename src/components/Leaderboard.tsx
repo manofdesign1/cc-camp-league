@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Medal, Award, DollarSign, Zap, Calendar, X, BadgeCheck, Loader2, Terminal, Copy, Check, Users } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -25,13 +25,10 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
   const [dateFrom, setDateFrom] = useState<string>(getKstDateStatic());
   const [dateTo, setDateTo] = useState<string>(getKstDateStatic());
   const [showFilters, setShowFilters] = useState(false);
-  const [allItems, setAllItems] = useState<Submission[]>([]);
   const { data: session } = useSession();
   const { data: globalStats } = useGlobalStats();
 
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
-
-  // Always fetch all participants (full list)
+  // Always fetch all participants (full list — fallback when no date filter)
   const { data: allParticipantsResult, isLoading } = useLeaderboard(
     { sortBy, page: 0, pageSize: 200 }
   );
@@ -72,19 +69,28 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
     return map;
   }, [prevPeriodResult]);
 
-  // Backend now returns ALL participants (with 0 values for those without data in range)
-  useEffect(() => {
+  // Cache last good items — never show empty state during filter transitions
+  const lastGoodItems = useRef<Submission[]>([]);
+
+  const allItems = useMemo(() => {
+    let items: Submission[] = [];
+
     if (dateFrom && dateTo) {
-      // Date filter active — backend returns all participants including 0-value ones
-      if (!dateFilteredResult) return; // still loading, keep previous items
-      setHasLoadedOnce(true);
-      setAllItems(dateFilteredResult.items || []);
+      if (dateFilteredResult?.items) {
+        items = dateFilteredResult.items;
+      }
     } else if (allParticipantsResult?.items) {
-      // No date filter — show all participants with cumulative data
-      setHasLoadedOnce(true);
-      setAllItems(allParticipantsResult.items);
+      items = allParticipantsResult.items;
     }
-  }, [allParticipantsResult, dateFilteredResult, dateFrom, dateTo]);
+
+    if (items.length > 0) {
+      lastGoodItems.current = items;
+      return items;
+    }
+
+    // During loading, return cached previous data
+    return lastGoodItems.current;
+  }, [dateFrom, dateTo, dateFilteredResult, allParticipantsResult]);
 
   const filterDays = useMemo(() => {
     if (!dateFrom || !dateTo) return 1;
@@ -371,7 +377,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
               {/* All participants loaded at once, no pagination needed */}
             </div>
           </div>
-        ) : !hasLoadedOnce || isLoading || isDateFilterLoading ? (
+        ) : isLoading || isDateFilterLoading ? (
           <div className="h-full flex flex-col items-center justify-center">
             <img
               src="/delta-society-logo.png"
