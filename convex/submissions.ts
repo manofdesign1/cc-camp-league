@@ -176,10 +176,12 @@ export const submit = mutation({
       suspiciousReasons.push(`Average daily cost of $${avgDailyCost.toFixed(2)} is unusually high`);
     }
     
-    // Check for future dates (allow today)
+    // Check for future dates (allow today in KST — users are in Korea, UTC+9)
     const today = new Date();
-    today.setHours(23, 59, 59, 999); // End of today to allow current day submissions
-    const futureDate = dates.find(date => new Date(date) > today);
+    today.setHours(23, 59, 59, 999);
+    // Add 9 hours buffer so KST "today" is never rejected as future by UTC server
+    const todayWithKstBuffer = new Date(today.getTime() + 9 * 60 * 60 * 1000);
+    const futureDate = dates.find(date => new Date(date) > todayWithKstBuffer);
     if (futureDate) {
       throw new Error(`Future date detected: ${futureDate}. Please check your data.`);
     }
