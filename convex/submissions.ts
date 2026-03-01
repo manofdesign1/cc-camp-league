@@ -485,8 +485,8 @@ export const getLeaderboardByDateRange = query({
         return day.date >= args.dateFrom && day.date <= args.dateTo;
       });
       
-      if (filteredDays.length === 0) continue;
-      
+      // Include ALL participants — those with no data in range get 0 values
+
       // Calculate totals for the filtered date range
       const filteredTotals = filteredDays.reduce(
         (acc, day) => ({

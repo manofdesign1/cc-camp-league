@@ -72,47 +72,19 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
     return map;
   }, [prevPeriodResult]);
 
-  // Merge: all participants shown, date-filtered values overlaid (0 if no data)
+  // Backend now returns ALL participants (with 0 values for those without data in range)
   useEffect(() => {
-    if (!allParticipantsResult?.items) return;
-
-    // Wait for dateFilteredResult to load before merging
     if (dateFrom && dateTo) {
+      // Date filter active — backend returns all participants including 0-value ones
       if (!dateFilteredResult) return; // still loading, keep previous items
       setHasLoadedOnce(true);
-
-      const filteredMap = new Map(
-        (dateFilteredResult.items || []).map(item => [
-          item.githubUsername || item.username, item
-        ])
-      );
-
-      const merged = allParticipantsResult.items.map(participant => {
-        const key = participant.githubUsername || participant.username;
-        const filtered = filteredMap.get(key);
-        if (filtered) return filtered;
-        return {
-          ...participant,
-          totalTokens: 0,
-          totalCost: 0,
-          inputTokens: 0,
-          outputTokens: 0,
-          cacheCreationTokens: 0,
-          cacheReadTokens: 0,
-          dailyBreakdown: [],
-        };
-      });
-
-      merged.sort((a, b) =>
-        sortBy === "cost" ? b.totalCost - a.totalCost : b.totalTokens - a.totalTokens
-      );
-
-      setAllItems(merged);
-    } else {
+      setAllItems(dateFilteredResult.items || []);
+    } else if (allParticipantsResult?.items) {
+      // No date filter — show all participants with cumulative data
       setHasLoadedOnce(true);
       setAllItems(allParticipantsResult.items);
     }
-  }, [allParticipantsResult, dateFilteredResult, dateFrom, dateTo, sortBy]);
+  }, [allParticipantsResult, dateFilteredResult, dateFrom, dateTo]);
 
   const filterDays = useMemo(() => {
     if (!dateFrom || !dateTo) return 1;
