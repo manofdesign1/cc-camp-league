@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Medal, Award, DollarSign, Zap, Calendar, X, BadgeCheck, Loader2, Terminal, Copy, Check, Users } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -169,10 +169,32 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
     return diff === days;
   };
 
+  const [meterHidden, setMeterHidden] = useState(false);
+  const lastScrollTop = useRef(0);
+
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const st = e.currentTarget.scrollTop;
+    if (st > lastScrollTop.current && st > 30) {
+      setMeterHidden(true);
+    } else if (st < lastScrollTop.current) {
+      setMeterHidden(false);
+    }
+    lastScrollTop.current = st;
+  }, []);
+
   return (
     <div className="h-full flex flex-col max-w-5xl mx-auto w-full">
-      {/* Header — Camp Meter */}
-      <div className="flex-shrink-0 px-6 py-3 border-b border-border">
+      {/* Header — Camp Meter (hides on scroll down) */}
+      <div
+        className="flex-shrink-0 px-6 border-b border-border overflow-hidden transition-all duration-300 ease-in-out"
+        style={{
+          maxHeight: meterHidden ? 0 : 120,
+          paddingTop: meterHidden ? 0 : 12,
+          paddingBottom: meterHidden ? 0 : 12,
+          opacity: meterHidden ? 0 : 1,
+          borderBottomWidth: meterHidden ? 0 : 1,
+        }}
+      >
         {allItems.length > 0 ? (
           <div className="space-y-2">
             <p className="text-[10px] sm:text-xs text-muted">더 많이 쓰는 사람이 더 빠르게 성장합니다 🔥</p>
@@ -290,7 +312,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto" onScroll={handleScroll}>
         {allItems.length > 0 ? (
           <div>
             {/* Column Headers */}
@@ -414,13 +436,6 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
               </div>
             </div>
 
-            {/* Footer — inside scroll area */}
-            <div className="px-6 py-2 border-t border-border text-center text-[10px] sm:text-xs text-muted">
-              Made by{" "}
-              <a href="https://thefuturemundane.com" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors underline underline-offset-2">Sung Kim</a>
-              {" · "}
-              <a href="https://deltasociety.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors underline underline-offset-2">Delta Society</a>
-            </div>
           </div>
         ) : (
           <div className="h-full flex flex-col items-center justify-center">
@@ -437,6 +452,14 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
             </span>
           </div>
         )}
+      </div>
+
+      {/* Footer — fixed bottom */}
+      <div className="flex-shrink-0 px-6 py-2 border-t border-border text-center text-[10px] sm:text-xs text-muted">
+        Made by{" "}
+        <a href="https://thefuturemundane.com" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors underline underline-offset-2">Sung Kim</a>
+        {" · "}
+        <a href="https://deltasociety.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors underline underline-offset-2">Delta Society</a>
       </div>
 
     </div>
