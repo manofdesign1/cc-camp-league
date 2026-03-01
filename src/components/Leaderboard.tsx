@@ -122,6 +122,8 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
 
   const getRankChange = (username: string, currentRank: number) => {
     if (!prevPeriod || prevRankMap.size === 0) return null;
+    // 이전 기간 참가자가 현재의 절반 미만이면 비교가 무의미 → 표시 안 함
+    if (prevRankMap.size < allItems.length * 0.5) return null;
     const prevRank = prevRankMap.get(username);
     if (prevRank === undefined) return { type: 'new' as const };
     const diff = prevRank - currentRank;
