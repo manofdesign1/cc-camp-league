@@ -86,6 +86,10 @@ fi
 HTTP_CODE=$(python3 -c "
 import json, urllib.request
 data = json.load(open('$TMP_FILE'))
+# Strip modelBreakdowns to reduce payload size
+if 'daily' in data:
+    for day in data['daily']:
+        day.pop('modelBreakdowns', None)
 data['_username'] = '$USERNAME'
 req = urllib.request.Request('$API/api/submit',
     data=json.dumps(data).encode('utf-8'),
@@ -173,6 +177,14 @@ async function runSync(username, silent = false) {
 
   try {
     const ccData = JSON.parse(fs.readFileSync(tmpFile, 'utf8'));
+
+    // Strip modelBreakdowns to reduce payload size (prevents timeout)
+    if (ccData.daily) {
+      ccData.daily = ccData.daily.map(day => {
+        const { modelBreakdowns, ...rest } = day;
+        return rest;
+      });
+    }
 
     ccData._username = username;
     const res = await fetch(`${API_URL}/api/submit`, {

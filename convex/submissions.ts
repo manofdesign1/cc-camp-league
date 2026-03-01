@@ -53,10 +53,10 @@ export const submit = mutation({
         throws: true // Automatically throw on rate limit
       });
     } catch (error: any) {
-      // Check if it's a rate limit error
-      if (error?.data?.kind === "RateLimitError") {
+      // Check if it's a rate limit error (handles both "RateLimitError" and "RateLimited" kinds)
+      if (error?.data?.kind === "RateLimitError" || error?.data?.kind === "RateLimited") {
         const retryAfter = error.data.retryAfter;
-        const waitSeconds = Math.ceil((retryAfter - Date.now()) / 1000);
+        const waitSeconds = Math.ceil(retryAfter / 1000);
         throw new Error(`Rate limit exceeded. Please wait ${waitSeconds} seconds before submitting again.`);
       }
       throw error;

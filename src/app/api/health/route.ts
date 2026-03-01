@@ -4,10 +4,13 @@ import { getServerDataLayer, getDatabaseBackend } from "@/lib/data";
 export async function GET(request: NextRequest) {
   const backend = getDatabaseBackend();
 
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "NOT SET";
+
   const checks = {
     api: "ok",
     backend,
     backendConnection: "unknown",
+    convexUrl: convexUrl.replace(/https?:\/\//, "").split(".")[0], // Show deployment name only
     timestamp: new Date().toISOString(),
   };
 

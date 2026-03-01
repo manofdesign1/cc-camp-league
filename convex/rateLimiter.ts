@@ -2,10 +2,10 @@ import { RateLimiter, MINUTE, HOUR } from "@convex-dev/rate-limiter";
 import { components } from "./_generated/api";
 
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
-  // Submission rate limits - very strict to prevent abuse
-  submitData: { 
-    kind: "fixed window", 
-    rate: 1, // Only 1 submission per hour per user
+  // Submission rate limits - allow auto-sync every 5 minutes
+  submitData: {
+    kind: "fixed window",
+    rate: 15, // 15 submissions per hour (supports 5-min auto-sync)
     period: HOUR,
   },
   
