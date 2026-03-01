@@ -170,7 +170,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
   };
 
   return (
-    <div className="h-full flex flex-col max-w-3xl mx-auto w-full">
+    <div className="h-full flex flex-col max-w-5xl mx-auto w-full">
       {/* Header — Camp Meter */}
       <div className="flex-shrink-0 px-6 py-3 border-b border-border">
         {allItems.length > 0 ? (
@@ -393,8 +393,33 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
                   </motion.div>
                 );
               })}
+            </div>
 
-              {/* All participants loaded at once, no pagination needed */}
+            {/* How to Join — inside scroll area */}
+            <CollapsibleJoin />
+
+            {/* Level Guide — inside scroll area */}
+            <div className="px-6 py-1.5 border-t border-border">
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 text-[9px] sm:text-[11px] text-muted flex-wrap">
+                <span>🥚~1M</span>
+                <span>🐣1M</span>
+                <span>🐥3M</span>
+                <span>🐓8M</span>
+                <span>🦉20M</span>
+                <span>🕊️40M</span>
+                <span>🦩80M</span>
+                <span>🦚150M</span>
+                <span>🦅300M</span>
+                <span>🐉500M</span>
+              </div>
+            </div>
+
+            {/* Footer — inside scroll area */}
+            <div className="px-6 py-2 border-t border-border text-center text-[10px] sm:text-xs text-muted">
+              Made by{" "}
+              <a href="https://thefuturemundane.com" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors underline underline-offset-2">Sung Kim</a>
+              {" · "}
+              <a href="https://deltasociety.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors underline underline-offset-2">Delta Society</a>
             </div>
           </div>
         ) : (
@@ -412,35 +437,6 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
             </span>
           </div>
         )}
-      </div>
-
-      {/* How to Join — collapsible */}
-      {allItems.length > 0 && (
-        <CollapsibleJoin />
-      )}
-
-      {/* Level Guide */}
-      <div className="flex-shrink-0 px-6 py-1.5 border-t border-border">
-        <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 text-[9px] sm:text-[11px] text-muted flex-wrap">
-          <span>🥚~1M</span>
-          <span>🐣1M</span>
-          <span>🐥3M</span>
-          <span>🐓8M</span>
-          <span>🦉20M</span>
-          <span>🕊️40M</span>
-          <span>🦩80M</span>
-          <span>🦚150M</span>
-          <span>🦅300M</span>
-          <span>🐉500M</span>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="flex-shrink-0 px-6 py-2 border-t border-border text-center text-[10px] sm:text-xs text-muted">
-        Made by{" "}
-        <a href="https://thefuturemundane.com" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors underline underline-offset-2">Sung Kim</a>
-        {" · "}
-        <a href="https://deltasociety.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors underline underline-offset-2">Delta Society</a>
       </div>
 
     </div>
