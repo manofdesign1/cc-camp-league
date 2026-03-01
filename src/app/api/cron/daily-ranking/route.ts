@@ -5,11 +5,16 @@ import { api } from "../../../../../convex/_generated/api";
 const SLACK_CHANNEL_ID = "C0ABTN1UV1A"; // #ai_native_camp
 
 function getLevelEmoji(tokens: number) {
-  if (tokens >= 50_000_000) return "🐉";
-  if (tokens >= 30_000_000) return "🦅";
-  if (tokens >= 15_000_000) return "🐓";
-  if (tokens >= 5_000_000) return "🐥";
-  return "🐣";
+  if (tokens >= 500_000_000) return "🐉";
+  if (tokens >= 300_000_000) return "🦅";
+  if (tokens >= 150_000_000) return "🦚";
+  if (tokens >= 80_000_000) return "🦩";
+  if (tokens >= 40_000_000) return "🦉";
+  if (tokens >= 20_000_000) return "🕊️";
+  if (tokens >= 8_000_000) return "🐓";
+  if (tokens >= 3_000_000) return "🐥";
+  if (tokens >= 1_000_000) return "🐣";
+  return "🥚";
 }
 
 function formatTokens(n: number): string {

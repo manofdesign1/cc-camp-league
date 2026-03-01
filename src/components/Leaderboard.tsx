@@ -116,11 +116,16 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
   }, [regularResult?.hasMore, isLoading, isDateFiltered, allItems.length]);
 
   const getLevelEmoji = (tokens: number) => {
-    if (tokens >= 50_000_000) return "🐉";
-    if (tokens >= 30_000_000) return "🦅";
-    if (tokens >= 15_000_000) return "🐓";
-    if (tokens >= 5_000_000) return "🐥";
-    return "🐣";
+    if (tokens >= 500_000_000) return "🐉";
+    if (tokens >= 300_000_000) return "🦅";
+    if (tokens >= 150_000_000) return "🦚";
+    if (tokens >= 80_000_000) return "🦩";
+    if (tokens >= 40_000_000) return "🦉";
+    if (tokens >= 20_000_000) return "🕊️";
+    if (tokens >= 8_000_000) return "🐓";
+    if (tokens >= 3_000_000) return "🐥";
+    if (tokens >= 1_000_000) return "🐣";
+    return "🥚";
   };
 
   const getRankChange = (username: string, currentRank: number) => {
@@ -418,13 +423,18 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
       )}
 
       {/* Level Guide */}
-      <div className="flex-shrink-0 px-6 py-2 border-t border-border">
-        <div className="flex items-center justify-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-muted">
-          <span>🐣 ~5M</span>
-          <span>🐥 5M</span>
-          <span>🐓 15M</span>
-          <span>🦅 30M</span>
-          <span>🐉 50M+</span>
+      <div className="flex-shrink-0 px-6 py-1.5 border-t border-border">
+        <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 text-[9px] sm:text-[11px] text-muted flex-wrap">
+          <span>🥚~1M</span>
+          <span>🐣1M</span>
+          <span>🐥3M</span>
+          <span>🐓8M</span>
+          <span>🕊️20M</span>
+          <span>🦉40M</span>
+          <span>🦩80M</span>
+          <span>🦚150M</span>
+          <span>🦅300M</span>
+          <span>🐉500M</span>
         </div>
       </div>
 
