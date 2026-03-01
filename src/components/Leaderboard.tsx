@@ -72,16 +72,15 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
     return map;
   }, [prevPeriodResult]);
 
-  useEffect(() => {
-    setAllItems([]);
-  }, [sortBy, dateFrom, dateTo]);
-
   // Merge: all participants shown, date-filtered values overlaid (0 if no data)
   useEffect(() => {
     if (!allParticipantsResult?.items) return;
-    setHasLoadedOnce(true);
 
-    if (dateFrom && dateTo && dateFilteredResult) {
+    // Wait for dateFilteredResult to load before merging
+    if (dateFrom && dateTo) {
+      if (!dateFilteredResult) return; // still loading, keep previous items
+      setHasLoadedOnce(true);
+
       const filteredMap = new Map(
         (dateFilteredResult.items || []).map(item => [
           item.githubUsername || item.username, item
@@ -110,6 +109,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
 
       setAllItems(merged);
     } else {
+      setHasLoadedOnce(true);
       setAllItems(allParticipantsResult.items);
     }
   }, [allParticipantsResult, dateFilteredResult, dateFrom, dateTo, sortBy]);
