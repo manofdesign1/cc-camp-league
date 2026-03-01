@@ -19,10 +19,11 @@ interface LeaderboardProps {
 
 export default function Leaderboard({ onCopyCommand, copiedToClipboard }: LeaderboardProps) {
   const [sortBy, setSortBy] = useState<SortBy>("tokens");
-  // Default to today
-  const today = new Date().toISOString().split('T')[0];
-  const [dateFrom, setDateFrom] = useState<string>(today);
-  const [dateTo, setDateTo] = useState<string>(today);
+  // Default to 7-day range (KST) — "오늘" may have no data early in the day
+  const todayKst = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const weekAgoKst = new Date(Date.now() + 9 * 60 * 60 * 1000 - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const [dateFrom, setDateFrom] = useState<string>(weekAgoKst);
+  const [dateTo, setDateTo] = useState<string>(todayKst);
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(0);
   const [allItems, setAllItems] = useState<Submission[]>([]);
@@ -157,21 +158,23 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
     return "";
   };
 
+  const getKstDate = (date: Date = new Date()) =>
+    new Date(date.getTime() + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
+
   const setQuickFilter = (days: number | null) => {
     if (days === null) {
       setDateFrom("");
       setDateTo("");
     } else if (days === 0) {
-      // Today
-      const t = new Date().toISOString().split('T')[0];
+      const t = getKstDate();
       setDateFrom(t);
       setDateTo(t);
     } else {
-      const t = new Date();
-      const from = new Date(t);
-      from.setDate(t.getDate() - days);
-      setDateFrom(from.toISOString().split('T')[0]);
-      setDateTo(t.toISOString().split('T')[0]);
+      const now = new Date();
+      const from = new Date(now);
+      from.setDate(now.getDate() - days);
+      setDateFrom(getKstDate(from));
+      setDateTo(getKstDate(now));
     }
   };
 
@@ -179,7 +182,7 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
     if (days === null) return !dateFrom && !dateTo;
     if (!dateFrom || !dateTo) return false;
     if (days === 0) {
-      const t = new Date().toISOString().split('T')[0];
+      const t = getKstDate();
       return dateFrom === t && dateTo === t;
     }
     const diff = Math.round((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / (24 * 60 * 60 * 1000));
