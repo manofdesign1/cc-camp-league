@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo, useCallback } from "react";
+import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Medal, Award, DollarSign, Zap, Calendar, X, BadgeCheck, Loader2, Terminal, Copy, Check, Users } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -97,6 +97,12 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
     const diffMs = new Date(dateTo + "T00:00:00").getTime() - new Date(dateFrom + "T00:00:00").getTime();
     return Math.max(1, Math.round(diffMs / (24 * 60 * 60 * 1000)) + 1);
   }, [dateFrom, dateTo]);
+
+  // Most recent sync time across all displayed items
+  const lastSyncedAt = useMemo(() => {
+    if (allItems.length === 0) return null;
+    return Math.max(...allItems.map(item => item.submittedAt));
+  }, [allItems]);
 
   // Camp-wide totals
   const campStats = useMemo(() => {
@@ -456,6 +462,11 @@ export default function Leaderboard({ onCopyCommand, copiedToClipboard }: Leader
 
       {/* Footer — fixed bottom */}
       <div className="flex-shrink-0 px-6 py-2 border-t border-border text-center text-[10px] sm:text-xs text-muted">
+        {lastSyncedAt && (
+          <div className="mb-1">
+            마지막 동기화: <RelativeTime timestamp={lastSyncedAt} />
+          </div>
+        )}
         Made by{" "}
         <a href="https://thefuturemundane.com" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors underline underline-offset-2">Sung Kim</a>
         {" · "}
@@ -583,6 +594,31 @@ function HowToJoin({ compact = false }: { compact?: boolean }) {
       </p>
     </div>
   );
+}
+
+function RelativeTime({ timestamp }: { timestamp: number }) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const diffMs = now - timestamp;
+  const diffMin = Math.floor(diffMs / 60_000);
+  const diffHour = Math.floor(diffMs / 3_600_000);
+  const diffDay = Math.floor(diffMs / 86_400_000);
+
+  let relative: string;
+  if (diffMin < 1) relative = "방금 전";
+  else if (diffMin < 60) relative = `${diffMin}분 전`;
+  else if (diffHour < 24) relative = `${diffHour}시간 전`;
+  else relative = `${diffDay}일 전`;
+
+  const kstDate = new Date(timestamp + 9 * 60 * 60 * 1000);
+  const formatted = `${kstDate.getUTCFullYear()}-${String(kstDate.getUTCMonth() + 1).padStart(2, "0")}-${String(kstDate.getUTCDate()).padStart(2, "0")} ${String(kstDate.getUTCHours()).padStart(2, "0")}:${String(kstDate.getUTCMinutes()).padStart(2, "0")} KST`;
+
+  return <span title={formatted}>{relative}</span>;
 }
 
 function Sparkline({ data }: { data?: { date: string; totalTokens: number }[] }) {
