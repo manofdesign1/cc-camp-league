@@ -21,11 +21,17 @@ export function useGlobalStats() {
   const [supabaseLoading, setSupabaseLoading] = useState(false);
   const [supabaseError, setSupabaseError] = useState<Error | null>(null);
 
-  // Convex query
-  const convexResult = useConvexQuery(
-    api.stats.getGlobalStats,
-    backend === "convex" ? {} : "skip"
-  );
+  // Convex query — wrap in try/catch to prevent app crash on server errors
+  let convexResult: GlobalStats | undefined;
+  try {
+    convexResult = useConvexQuery(
+      api.stats.getGlobalStats,
+      backend === "convex" ? {} : "skip"
+    ) as GlobalStats | undefined;
+  } catch {
+    // Convex server error — return gracefully instead of crashing
+    convexResult = undefined;
+  }
 
   // Supabase query
   useEffect(() => {

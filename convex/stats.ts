@@ -2,76 +2,63 @@ import { query } from "./_generated/server";
 import { v } from "convex/values";
 
 // WARNING: This is not truly "global" - it only processes top submissions
-// to avoid 16MB limit. For accurate global stats, we need pre-aggregation.
+// to avoid Convex read limits. For accurate global stats, we need pre-aggregation.
 export const getGlobalStats = query({
   args: {},
   handler: async (ctx) => {
-    // IMPORTANT: We use a multi-pronged approach to get more accurate stats
-    // while staying under Convex's limits
-    
-    // 1. Get unique user count from profiles (more accurate for user count)
+    // 1. Get unique user count from profiles (lightweight docs)
     const profileCount = await ctx.db
       .query("profiles")
-      .take(5000) // Profiles are smaller, we can fetch more
+      .take(500)
       .then(profiles => profiles.length);
-    
-    // 2. Get top submissions for cost/token stats (these matter most)
+
+    // 2. Get top submissions — only read aggregate fields, not full dailyBreakdown
+    // Reduced from 500 to 100 to stay within Convex read limits
     const topByCost = await ctx.db
       .query("submissions")
       .withIndex("by_total_cost")
       .order("desc")
-      .take(500); // Increased from 100 to 500 for better coverage
-    
-    // 3. Calculate stats from the sample
+      .take(100);
+
+    // 3. Calculate stats from the sample (using only top-level fields)
     let totalCost = 0;
     let totalTokens = 0;
     let totalDays = 0;
     let validSubmissions = 0;
     const uniqueUsersFromSubmissions = new Set<string>();
     const modelUsage: Record<string, number> = {};
-    let topSubmission: any = null;
-    
+    let topSubmission: { totalCost: number; username: string } | null = null;
+
     for (const submission of topByCost) {
-      // Skip flagged submissions
       if (submission.flaggedForReview) continue;
-      
+
       validSubmissions++;
       uniqueUsersFromSubmissions.add(submission.username);
       totalCost += submission.totalCost;
       totalTokens += submission.totalTokens;
       totalDays += submission.dailyBreakdown.length;
-      
-      // Track top submission
+
       if (!topSubmission || submission.totalCost > topSubmission.totalCost) {
-        topSubmission = submission;
+        topSubmission = { totalCost: submission.totalCost, username: submission.username };
       }
-      
-      // Track model usage
+
       submission.modelsUsed.forEach(model => {
         const key = model.includes("opus") ? "opus" : "sonnet";
         modelUsage[key] = (modelUsage[key] || 0) + 1;
       });
     }
-    
-    // 4. Get additional submission count for better approximation
-    const totalSubmissionCount = await ctx.db
-      .query("submissions")
-      .withIndex("by_total_cost")
-      .take(1000) // Just count, don't process
-      .then(subs => subs.filter(s => !s.flaggedForReview).length);
-    
-    // Use the maximum of different counting methods for most accurate user count
+
     const uniqueUserCount = Math.max(
       uniqueUsersFromSubmissions.size,
       profileCount
     );
-    
+
     const avgCostPerUser = uniqueUserCount > 0 ? totalCost / uniqueUserCount : 0;
     const avgTokensPerUser = uniqueUserCount > 0 ? totalTokens / uniqueUserCount : 0;
-    
+
     return {
       totalUsers: uniqueUserCount,
-      totalSubmissions: Math.max(validSubmissions, totalSubmissionCount),
+      totalSubmissions: validSubmissions,
       totalCost,
       totalTokens,
       avgCostPerUser,
@@ -80,8 +67,8 @@ export const getGlobalStats = query({
       modelUsage,
       totalDays,
       avgTokensPerUser,
-      isApproximate: true, // IMPORTANT: These are approximate stats
-      basedOnTop: 500, // Based on top 500 submissions for stats
+      isApproximate: true,
+      basedOnTop: 100,
     };
   },
 });

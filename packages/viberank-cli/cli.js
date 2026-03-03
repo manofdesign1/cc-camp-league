@@ -127,8 +127,8 @@ function installCron() {
   // Remove old entry if exists
   const lines = current.split('\n').filter(l => !l.includes(CRON_TAG) && !l.includes('cc-camp'));
 
-  // Add new entry — every minute
-  lines.push(`* * * * * ${SYNC_SCRIPT} ${CRON_TAG}`);
+  // Add new entry — every 30 minutes
+  lines.push(`*/30 * * * * ${SYNC_SCRIPT} ${CRON_TAG}`);
 
   const newCrontab = lines.filter(l => l.trim()).join('\n') + '\n';
   execSync(`echo "${newCrontab}" | crontab -`, { encoding: 'utf8' });
@@ -258,7 +258,7 @@ async function setup() {
   const spinner = ora('자동 동기화 설정 중...').start();
   createSyncScript(username);
   installCron();
-  spinner.succeed('자동 동기화 설정 완료 (1분 간격)');
+  spinner.succeed('자동 동기화 설정 완료 (30분 간격)');
 
   // Run first sync
   console.log('');
@@ -266,7 +266,7 @@ async function setup() {
 
   if (ok) {
     console.log(chalk.green.bold('✅ 설정 완료!'));
-    console.log(chalk.gray('   Claude Code를 사용하면 1분마다 자동으로 리더보드가 업데이트됩니다.'));
+    console.log(chalk.gray('   Claude Code를 사용하면 30분마다 자동으로 리더보드가 업데이트됩니다.'));
     console.log(chalk.gray(`   리더보드: ${API_URL}\n`));
   } else {
     console.log(chalk.yellow('\n⚠️  자동 동기화는 설정되었지만 첫 동기화에 실패했습니다.'));

@@ -22,7 +22,7 @@ interface RateLimitResult {
 const RATE_LIMITS: Record<string, RateLimitConfig> = {
   submitData: {
     rate: 1,
-    periodMs: 60 * 60 * 1000, // 1 per hour
+    periodMs: 25 * 60 * 1000, // 1 per 25 minutes (matches 30-min cron with tolerance)
   },
   apiGeneral: {
     rate: 60,

@@ -36,17 +36,22 @@ export function useLeaderboard(params: LeaderboardParams | "skip") {
   const [supabaseError, setSupabaseError] = useState<Error | null>(null);
 
   // Convex query (only runs when backend is 'convex')
-  const convexResult = useConvexQuery(
-    api.submissions.getLeaderboard,
-    backend === "convex" && params !== "skip"
-      ? {
-          sortBy: params.sortBy,
-          page: params.page,
-          pageSize: params.pageSize,
-          includeFlagged: params.includeFlagged,
-        }
-      : "skip"
-  );
+  let convexResult: any;
+  try {
+    convexResult = useConvexQuery(
+      api.submissions.getLeaderboard,
+      backend === "convex" && params !== "skip"
+        ? {
+            sortBy: params.sortBy,
+            page: params.page,
+            pageSize: params.pageSize,
+            includeFlagged: params.includeFlagged,
+          }
+        : "skip"
+    );
+  } catch {
+    convexResult = undefined;
+  }
 
   // Supabase query (only runs when backend is 'supabase')
   useEffect(() => {
@@ -104,19 +109,24 @@ export function useLeaderboardByDateRange(params: DateRangeLeaderboardParams | "
   const [supabaseError, setSupabaseError] = useState<Error | null>(null);
 
   // Convex query
-  const convexResult = useConvexQuery(
-    api.submissions.getLeaderboardByDateRange,
-    backend === "convex" && params !== "skip"
-      ? {
-          dateFrom: params.dateFrom,
-          dateTo: params.dateTo,
-          sortBy: params.sortBy,
-          limit: params.limit,
-          cursor: params.cursor as any,
-          includeFlagged: params.includeFlagged,
-        }
-      : "skip"
-  );
+  let convexResult: any;
+  try {
+    convexResult = useConvexQuery(
+      api.submissions.getLeaderboardByDateRange,
+      backend === "convex" && params !== "skip"
+        ? {
+            dateFrom: params.dateFrom,
+            dateTo: params.dateTo,
+            sortBy: params.sortBy,
+            limit: params.limit,
+            cursor: params.cursor as any,
+            includeFlagged: params.includeFlagged,
+          }
+        : "skip"
+    );
+  } catch {
+    convexResult = undefined;
+  }
 
   // Supabase query
   useEffect(() => {
