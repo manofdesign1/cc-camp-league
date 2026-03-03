@@ -556,9 +556,8 @@ class SupabaseSubmissionsService implements SubmissionsService {
 
     for (const submission of submissions) {
       const filteredDaily = dailyBySubmission.get(submission.id) || [];
-      if (filteredDaily.length === 0) continue;
 
-      // Calculate totals for filtered date range
+      // Calculate totals for filtered date range (0 if no data for this period)
       const totals = filteredDaily.reduce(
         (acc, day) => ({
           totalCost: acc.totalCost + Number(day.total_cost),
