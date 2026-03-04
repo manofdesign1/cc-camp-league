@@ -241,18 +241,18 @@ class SupabaseSubmissionsService implements SubmissionsService {
 
     // Validate date format and daily data
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    // Use UTC to avoid timezone issues - get today's date in UTC
+    // Add KST buffer (+9h) so Korean users' dates aren't rejected as "future"
     const now = new Date();
-    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+    const maxDateUTC = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+    const maxDate = new Date(Date.UTC(maxDateUTC.getUTCFullYear(), maxDateUTC.getUTCMonth(), maxDateUTC.getUTCDate(), 23, 59, 59, 999));
 
     for (const day of ccData.daily) {
       if (!dateRegex.test(day.date)) {
         throw new Error(`Invalid date format: ${day.date}. Expected YYYY-MM-DD`);
       }
 
-      // Parse date as UTC to match how we're comparing
       const dayDate = new Date(day.date + "T00:00:00Z");
-      if (dayDate > todayUTC) {
+      if (dayDate > maxDate) {
         throw new Error(`Future date detected: ${day.date}`);
       }
 
